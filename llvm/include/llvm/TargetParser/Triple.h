@@ -207,6 +207,7 @@ public:
     KFreeBSD,
     Linux,
     Lv2, // PS3
+    Xbox360,
     MacOSX,
     NetBSD,
     OpenBSD,
@@ -625,9 +626,14 @@ public:
     return getOS() == Triple::Win32;
   }
 
+  /// Tests whether the OS is Xbox 360.
+  bool isOSXbox360() const {
+    return getOS() == Triple::Xbox360;
+  }
+
   /// Checks if the environment is MSVC.
   bool isKnownWindowsMSVCEnvironment() const {
-    return isOSWindows() && getEnvironment() == Triple::MSVC;
+    return (isOSWindows() || isOSXbox360()) && getEnvironment() == Triple::MSVC;
   }
 
   /// Checks if the environment could be MSVC.
@@ -746,6 +752,12 @@ public:
   /// Tests whether the OS uses the DXContainer binary format.
   bool isOSBinFormatDXContainer() const {
     return getObjectFormat() == Triple::DXContainer;
+  }
+
+  bool isXbox360() const {
+    return getArch() == Triple::ppc64 &&
+           getVendor() == Triple::IBM &&
+           getOS() == Triple::Xbox360;
   }
 
   /// Tests whether the target is the PS4 platform.

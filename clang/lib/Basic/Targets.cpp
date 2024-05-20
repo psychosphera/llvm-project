@@ -397,6 +397,8 @@ std::unique_ptr<TargetInfo> AllocateTarget(const llvm::Triple &Triple,
       return std::make_unique<OpenBSDTargetInfo<PPC64TargetInfo>>(Triple, Opts);
     case llvm::Triple::AIX:
       return std::make_unique<AIXPPC64TargetInfo>(Triple, Opts);
+    case llvm::Triple::Xbox360:
+      return std::make_unique<Xbox360TargetInfo<PPC64TargetInfo>>(Triple, Opts);
     default:
       return std::make_unique<PPC64TargetInfo>(Triple, Opts);
     }

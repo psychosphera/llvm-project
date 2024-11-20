@@ -678,9 +678,10 @@ Register PPCInstrInfo::generateLoadForNewConst(
 
   // Generate ADDIStocHA8
   Register VReg1 = MRI->createVirtualRegister(&PPC::G8RC_and_G8RC_NOX0RegClass);
+  const unsigned Reg = Subtarget.isTargetXbox360() ? PPC::R2 : PPC::X2;
   MachineInstrBuilder TOCOffset =
       BuildMI(*MF, MI->getDebugLoc(), get(PPC::ADDIStocHA8), VReg1)
-          .addReg(PPC::X2)
+          .addReg(Reg)
           .addConstantPoolIndex(Idx);
 
   assert((Ty->isFloatTy() || Ty->isDoubleTy()) &&
@@ -1681,6 +1682,13 @@ void PPCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                MCRegister SrcReg, bool KillSrc) const {
   // We can end up with self copies and similar things as a result of VSX copy
   // legalization. Promote them here.
+  if(SrcReg.id() >= PPC::R0 && SrcReg.id() <= PPC::R31 && DestReg.id() >= PPC::X0 && DestReg.id() <= PPC::X31 && Subtarget.isTargetXbox360()) 
+    DestReg = MCRegister(DestReg - (PPC::X0 - PPC::R0));
+  if(DestReg.id() >= PPC::R0 && DestReg.id() <= PPC::R31 && SrcReg.id() >= PPC::X0 && SrcReg.id() <= PPC::X31 && Subtarget.isTargetXbox360()) 
+    SrcReg = MCRegister(SrcReg - (PPC::X0 - PPC::R0));
+
+  LLVM_DEBUG(dbgs() << "copyPhysReg: DestReg=" << DestReg << ", SrcReg=" << SrcReg << "(X1=" << PPC::X1 << ", R1=" << PPC::R1 << ")\n");
+    
   const TargetRegisterInfo *TRI = &getRegisterInfo();
   if (PPC::F8RCRegClass.contains(DestReg) &&
       PPC::VSRCRegClass.contains(SrcReg)) {
@@ -5286,7 +5294,7 @@ PPCInstrInfo::isSignOrZeroExtended(const unsigned Reg,
       }
     }
 
-    if (SrcReg != PPC::X3) {
+    if (SrcReg != PPC::X3 && SrcReg != PPC::R3) {
       // If this is a copy from another register, we recursively check source.
       auto SrcExt = isSignOrZeroExtended(SrcReg, BinOpDepth, MRI);
       return std::pair<bool, bool>(SrcExt.first || IsSExt,

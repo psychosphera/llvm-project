@@ -568,7 +568,7 @@ public:
     case Triple::UnknownObjectFormat:
       llvm_unreachable("Unknown object format");
     case Triple::COFF:
-      assert((T.isOSWindows() || T.isUEFI()) &&
+      assert((T.isOSWindows() || T.isOSXbox360() || T.isUEFI()) &&
              "only Windows and UEFI COFF are supported");
       S = COFFStreamerCtorFn(Ctx, std::move(TAB), std::move(OW),
                              std::move(Emitter), IncrementalLinkerCompatible);

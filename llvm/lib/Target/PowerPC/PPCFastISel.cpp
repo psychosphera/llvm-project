@@ -435,9 +435,10 @@ void PPCFastISel::PPCSimplifyAddress(Address &Addr, bool &UseOffset,
   }
 
   if (!UseOffset) {
-    IntegerType *OffsetTy = Type::getInt64Ty(*Context);
+    IntegerType *OffsetTy = Subtarget->isTargetXbox360() ? Type::getInt32Ty(*Context) : Type::getInt64Ty(*Context);
     const ConstantInt *Offset = ConstantInt::getSigned(OffsetTy, Addr.Offset);
-    IndexReg = PPCMaterializeInt(Offset, MVT::i64);
+    const MVT OffVT = Subtarget->isTargetXbox360() ? MVT::i32 : MVT::i64;
+    IndexReg = PPCMaterializeInt(Offset, OffVT);
     assert(IndexReg && "Unexpected error in PPCMaterializeInt!");
   }
 }
@@ -633,8 +634,7 @@ bool PPCFastISel::PPCEmitStore(MVT VT, unsigned SrcReg, Address &Addr) {
       Opc = Is32BitInt ? PPC::STH : PPC::STH8;
       break;
     case MVT::i32:
-      assert(Is32BitInt && "Not GPRC for i32??");
-      Opc = PPC::STW;
+      Opc = Is32BitInt ? PPC::STW : PPC::STW8;
       break;
     case MVT::i64:
       Opc = PPC::STD;
@@ -1422,7 +1422,7 @@ bool PPCFastISel::processCallArgs(SmallVectorImpl<Value*> &Args,
   // Prepare to assign register arguments.  Every argument uses up a
   // GPR protocol register even if it's passed in a floating-point
   // register (unless we're using the fast calling convention).
-  unsigned NextGPR = PPC::X3;
+  unsigned NextGPR = Subtarget->isTargetXbox360() ? PPC::R3 : PPC::X3;
   unsigned NextFPR = PPC::F1;
 
   // Process arguments.
@@ -1510,7 +1510,7 @@ bool PPCFastISel::finishCall(MVT RetVT, CallLoweringInfo &CLI, unsigned &NumByte
 
     // Ints smaller than a register still arrive in a full 64-bit
     // register, so make sure we recognize this.
-    if (RetVT == MVT::i8 || RetVT == MVT::i16 || RetVT == MVT::i32)
+    if (RetVT == MVT::i8 || RetVT == MVT::i16 || (RetVT == MVT::i32 && !Subtarget->isTargetXbox360()))
       CopyVT = MVT::i64;
 
     unsigned SourcePhysReg = VA.getLocReg();
@@ -1676,7 +1676,8 @@ bool PPCFastISel::fastLowerCall(CallLoweringInfo &CLI) {
   // Direct calls, in both the ELF V1 and V2 ABIs, need the TOC register live
   // into the call.
   PPCFuncInfo->setUsesTOCBasePtr();
-  MIB.addReg(PPC::X2, RegState::Implicit);
+  const unsigned Reg = Subtarget->isTargetXbox360() ? PPC::R2 : PPC::X2;
+  MIB.addReg(Reg, RegState::Implicit);
 
   // Add a register mask with the call-preserved registers.  Proper
   // defs for return values will be added by setPhysRegsDeadExcept().
@@ -1721,12 +1722,13 @@ bool PPCFastISel::SelectRet(const Instruction *I) {
       CCValAssign &VA = ValLocs[0];
 
       Register RetReg = VA.getLocReg();
+      const MVT RetVT = Subtarget->isTargetXbox360() ? MVT::i32 : MVT::i64;
       // We still need to worry about properly extending the sign. For example,
       // we could have only a single bit or a constant that needs zero
       // extension rather than sign extension. Make sure we pass the return
       // value extension property to integer materialization.
       unsigned SrcReg =
-          PPCMaterializeInt(CI, MVT::i64, VA.getLocInfo() != CCValAssign::ZExt);
+          PPCMaterializeInt(CI, RetVT, VA.getLocInfo() != CCValAssign::ZExt);
 
       BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD,
             TII.get(TargetOpcode::COPY), RetReg).addReg(SrcReg);
@@ -2022,15 +2024,17 @@ unsigned PPCFastISel::PPCMaterializeFP(const ConstantFP *CFP, MVT VT) {
   PPCFuncInfo->setUsesTOCBasePtr();
   // For small code model, generate a LF[SD](0, LDtocCPT(Idx, X2)).
   if (CModel == CodeModel::Small) {
+    const unsigned Reg = Subtarget->isTargetXbox360() ? PPC::R2 : PPC::X2;
     BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, TII.get(PPC::LDtocCPT),
             TmpReg)
-      .addConstantPoolIndex(Idx).addReg(PPC::X2);
+      .addConstantPoolIndex(Idx).addReg(Reg);
     BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, TII.get(Opc), DestReg)
       .addImm(0).addReg(TmpReg).addMemOperand(MMO);
   } else {
     // Otherwise we generate LF[SD](Idx[lo], ADDIStocHA8(X2, Idx)).
+    const unsigned Reg = Subtarget->isTargetXbox360() ? PPC::R2 : PPC::X2;
     BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, TII.get(PPC::ADDIStocHA8),
-            TmpReg).addReg(PPC::X2).addConstantPoolIndex(Idx);
+            TmpReg).addReg(Reg).addConstantPoolIndex(Idx);
     // But for large code model, we must generate a LDtocL followed
     // by the LF[SD].
     if (CModel == CodeModel::Large) {
@@ -2057,7 +2061,7 @@ unsigned PPCFastISel::PPCMaterializeGV(const GlobalValue *GV, MVT VT) {
   if (Subtarget->isUsingPCRelativeCalls())
     return false;
 
-  assert(VT == MVT::i64 && "Non-address!");
+  assert(VT == MVT::i64 || VT == MVT::i32 && "Non-address!");
   const TargetRegisterClass *RC = &PPC::G8RC_and_G8RC_NOX0RegClass;
   Register DestReg = createResultReg(RC);
 
@@ -2082,12 +2086,13 @@ unsigned PPCFastISel::PPCMaterializeGV(const GlobalValue *GV, MVT VT) {
 
   PPCFuncInfo->setUsesTOCBasePtr();
   // For small code model, generate a simple TOC load.
-  if (CModel == CodeModel::Small)
+  if (CModel == CodeModel::Small) {
+    const unsigned Reg = Subtarget->isTargetXbox360() ? PPC::R2 : PPC::X2;
     BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, TII.get(PPC::LDtoc),
             DestReg)
         .addGlobalAddress(GV)
-        .addReg(PPC::X2);
-  else {
+        .addReg(Reg);
+  } else {
     // If the address is an externally defined symbol, a symbol with common
     // or externally available linkage, a non-local function address, or a
     // jump table address (not yet needed), or if we are generating code
@@ -2097,8 +2102,9 @@ unsigned PPCFastISel::PPCMaterializeGV(const GlobalValue *GV, MVT VT) {
     //       ADDItocL8(ADDIStocHA8(%x2, GV), GV)
     // Either way, start with the ADDIStocHA8:
     Register HighPartReg = createResultReg(RC);
+    const unsigned Reg = Subtarget->isTargetXbox360() ? PPC::R2 : PPC::X2;
     BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, TII.get(PPC::ADDIStocHA8),
-            HighPartReg).addReg(PPC::X2).addGlobalAddress(GV);
+            HighPartReg).addReg(Reg).addGlobalAddress(GV);
 
     if (Subtarget->isGVIndirectSymbol(GV)) {
       BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, TII.get(PPC::LDtocL),

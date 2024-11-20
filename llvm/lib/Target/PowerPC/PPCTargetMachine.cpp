@@ -162,15 +162,17 @@ static std::string getDataLayoutString(const Triple &T) {
 
   Ret += DataLayout::getManglingComponent(T);
 
-  // PPC32 has 32 bit pointers. The PS3 (OS Lv2) is a PPC64 machine with 32 bit
-  // pointers.
-  if (!is64Bit || T.getOS() == Triple::Lv2)
+  // PPC32 has 32 bit pointers. The PS3 (OS Lv2) and Xbox 360 are PPC64 machines
+  // with 32 bit pointers.
+  if (!is64Bit || (T.getOS() == Triple::Lv2 || T.getOS() == Triple::Xbox360))
     Ret += "-p:32:32";
 
   // If the target ABI uses function descriptors, then the alignment of function
   // pointers depends on the alignment used to emit the descriptor. Otherwise,
   // function pointers are aligned to 32 bits because the instructions must be.
-  if ((T.getArch() == Triple::ppc64 && !T.isPPC64ELFv2ABI())) {
+  if (T.isOSXbox360()) {
+    Ret += "-Fi32";
+  } else if (T.getArch() == Triple::ppc64 && !T.isPPC64ELFv2ABI()) {
     Ret += "-Fi64";
   } else if (T.isOSAIX()) {
     Ret += is64Bit ? "-Fi64" : "-Fi32";
@@ -236,15 +238,18 @@ static std::string computeFSAdditions(StringRef FS, CodeGenOptLevel OL,
 static std::unique_ptr<TargetLoweringObjectFile> createTLOF(const Triple &TT) {
   if (TT.isOSAIX())
     return std::make_unique<TargetLoweringObjectFileXCOFF>();
+  if (TT.isOSXbox360())
+    return std::make_unique<TargetLoweringObjectFileCOFF>();
 
   return std::make_unique<PPC64LinuxTargetObjectFile>();
 }
 
 static PPCTargetMachine::PPCABI computeTargetABI(const Triple &TT,
                                                  const TargetOptions &Options) {
+  dbgs() << "computeTargetABI: ABIName=" << Options.MCOptions.getABIName() << "\n";
   if (Options.MCOptions.getABIName().starts_with("elfv1"))
     return PPCTargetMachine::PPC_ABI_ELFv1;
-  else if (Options.MCOptions.getABIName().starts_with("elfv2"))
+  else if (Options.MCOptions.getABIName().starts_with("elfv2") || Options.MCOptions.getABIName().starts_with("msvc") || Options.MCOptions.getABIName().empty())
     return PPCTargetMachine::PPC_ABI_ELFv2;
 
   assert(Options.MCOptions.getABIName().empty() &&
@@ -273,7 +278,7 @@ static Reloc::Model getEffectiveRelocModel(const Triple &TT,
     return *RM;
 
   // Big Endian PPC and AIX default to PIC.
-  if (TT.getArch() == Triple::ppc64 || TT.isOSAIX())
+  if ((TT.getArch() == Triple::ppc64) || TT.isOSAIX())
     return Reloc::PIC_;
 
   // Rest are static by default.
@@ -295,6 +300,8 @@ getEffectivePPCCodeModel(const Triple &TT, std::optional<CodeModel::Model> CM,
     return CodeModel::Small;
   if (TT.isOSAIX())
     return CodeModel::Small;
+  if (TT.isOSXbox360())
+    return CodeModel::Medium; // Not sure if this is correct
 
   assert(TT.isOSBinFormatELF() && "All remaining PPC OSes are ELF based.");
 

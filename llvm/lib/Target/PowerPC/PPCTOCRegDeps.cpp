@@ -109,9 +109,9 @@ protected:
     bool processBlock(MachineBasicBlock &MBB) {
       bool Changed = false;
 
-      const bool isPPC64 =
-          MBB.getParent()->getSubtarget<PPCSubtarget>().isPPC64();
-      const unsigned TOCReg = isPPC64 ? PPC::X2 : PPC::R2;
+      const auto &Subtarget = MBB.getParent()->getSubtarget<PPCSubtarget>();
+      const bool isPPC64 = Subtarget.isPPC64();
+      const unsigned TOCReg = isPPC64 && !Subtarget.isTargetXbox360() ? PPC::X2 : PPC::R2;
 
       for (auto &MI : MBB) {
         if (!hasTOCLoReloc(MI))

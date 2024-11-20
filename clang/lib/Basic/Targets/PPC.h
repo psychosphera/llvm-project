@@ -443,9 +443,10 @@ class LLVM_LIBRARY_VISIBILITY PPC64TargetInfo : public PPCTargetInfo {
 public:
   PPC64TargetInfo(const llvm::Triple &Triple, const TargetOptions &Opts)
       : PPCTargetInfo(Triple, Opts) {
-    LongWidth = LongAlign = PointerWidth = PointerAlign = 64;
-    IntMaxType = SignedLong;
-    Int64Type = SignedLong;
+    PointerWidth = PointerAlign = Triple.isOSXbox360() ? 32 : 64;
+    LongWidth = LongAlign = Triple.isOSXbox360() ? 32 : 64;
+    IntMaxType = Triple.isOSXbox360() ? SignedLongLong : SignedLong;
+    Int64Type = Triple.isOSXbox360() ? SignedLongLong : SignedLong;
     std::string DataLayout;
 
     if (Triple.isOSAIX()) {
@@ -454,6 +455,10 @@ public:
       LongDoubleWidth = 64;
       LongDoubleAlign = DoubleAlign = 32;
       LongDoubleFormat = &llvm::APFloat::IEEEdouble();
+    } else if (Triple.isOSXbox360()) {
+      // Xbox 360 only uses 32-bit pointers since the console only has 512MB of memory.
+      DataLayout = "E-m:w-p:32:32-Fi32-i64:64-n32:64";
+      LongDoubleWidth = DoubleWidth = LongDoubleAlign = DoubleAlign = 64;
     } else if ((Triple.getArch() == llvm::Triple::ppc64le)) {
       DataLayout = "e-m:e-Fn32-i64:64-n32:64";
       ABI = "elfv2";

@@ -1309,6 +1309,9 @@ void SelectionDAGLegalize::LegalizeOp(SDNode *Node) {
         if (Node->getNumValues() == 1) {
           // Verify the new types match the original. Glue is waived because
           // ISD::ADDC can be legalized by replacing Glue with an integer type.
+          Res.dump();
+          Node->dump();
+
           assert((Res.getValueType() == Node->getValueType(0) ||
                   Node->getValueType(0) == MVT::Glue) &&
                  "Type mismatch for custom legalized operation");
@@ -1316,7 +1319,7 @@ void SelectionDAGLegalize::LegalizeOp(SDNode *Node) {
           // We can just directly replace this node with the lowered value.
           ReplaceNode(SDValue(Node, 0), Res);
           return;
-        }
+        } 
 
         SmallVector<SDValue, 8> ResultVals;
         for (unsigned i = 0, e = Node->getNumValues(); i != e; ++i) {
@@ -4998,7 +5001,7 @@ static MVT getPromotedVectorElementType(const TargetLowering &TLI,
 }
 
 void SelectionDAGLegalize::PromoteNode(SDNode *Node) {
-  LLVM_DEBUG(dbgs() << "Trying to promote node\n");
+  LLVM_DEBUG(dbgs() << "Trying to promote node " << Node->getOpcode() << "\n");
   SmallVector<SDValue, 8> Results;
   MVT OVT = Node->getSimpleValueType(0);
   if (Node->getOpcode() == ISD::UINT_TO_FP ||
@@ -5024,7 +5027,9 @@ void SelectionDAGLegalize::PromoteNode(SDNode *Node) {
   if (Node->getOpcode() == ISD::BR_CC ||
       Node->getOpcode() == ISD::SELECT_CC)
     OVT = Node->getOperand(2).getSimpleValueType();
+    dbgs() << "1\n";
   MVT NVT = TLI.getTypeToPromoteTo(Node->getOpcode(), OVT);
+    dbgs() << "2\n";
   SDLoc dl(Node);
   SDValue Tmp1, Tmp2, Tmp3, Tmp4;
   switch (Node->getOpcode()) {

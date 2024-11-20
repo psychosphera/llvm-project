@@ -331,7 +331,7 @@ Register FastISel::materializeConstant(const Value *V, MVT VT) {
 Register FastISel::materializeRegForValue(const Value *V, MVT VT) {
   Register Reg;
   // Give the target-specific code a try first.
-  if (isa<Constant>(V))
+  if (isa<Constant>(V) && !TM.getTargetTriple().isOSXbox360())
     Reg = fastMaterializeConstant(cast<Constant>(V));
 
   // If target-specific code couldn't or didn't want to handle the value, then

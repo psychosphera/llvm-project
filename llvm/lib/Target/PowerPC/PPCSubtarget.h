@@ -210,6 +210,7 @@ public:
   bool isTargetELF() const { return TargetTriple.isOSBinFormatELF(); }
   bool isTargetMachO() const { return TargetTriple.isOSBinFormatMachO(); }
   bool isTargetLinux() const { return TargetTriple.isOSLinux(); }
+  bool isTargetXbox360() const { return TargetTriple.isOSXbox360(); }
 
   bool isAIXABI() const { return TargetTriple.isOSAIX(); }
   bool isSVR4ABI() const { return !isAIXABI(); }
@@ -277,7 +278,7 @@ public:
   MCRegister getTOCPointerRegister() const {
     assert((is64BitELFABI() || isAIXABI()) &&
            "Should only be called when the target is a TOC based ABI.");
-    return IsPPC64 ? PPC::X2 : PPC::R2;
+    return IsPPC64 && !isTargetXbox360() ? PPC::X2 : PPC::R2;
   }
 
   MCRegister getThreadPointerRegister() const {

@@ -72,3 +72,28 @@ PPCXCOFFMCAsmInfo::PPCXCOFFMCAsmInfo(bool Is64Bit, const Triple &T) {
   // Support $ as PC in inline asm
   DollarIsPC = true;
 }
+
+void PPCCOFFMCAsmInfo::anchor() {}
+
+PPCCOFFMCAsmInfo::PPCCOFFMCAsmInfo(bool Is64Bit, const Triple &T) {
+  if (T.getArch() == Triple::ppc64le || T.getArch() == Triple::ppcle)
+    report_fatal_error("COFF is not supported for little-endian targets");
+  if(!Is64Bit)
+    report_fatal_error("COFF is not supported for 32-bit targets");
+
+  CodePointerSize = CalleeSaveStackSlotSize = 8;
+
+  // A size of 8 is only supported by the assembler under 64-bit.
+  Data64bitsDirective = "\t.vbyte\t8, ";
+
+  // Debug Information
+  SupportsDebugInformation = true;
+
+  // Set up DWARF directives
+  MinInstAlignment = 4;
+
+  // Support $ as PC in inline asm
+  DollarIsPC = true;
+
+  IsLittleEndian = false;
+}

@@ -6164,7 +6164,7 @@ void PPCDAGToDAGISel::Select(SDNode *N) {
     SDValue GA = N->getOperand(0);
     SDValue TOCbase = N->getOperand(1);
 
-    EVT VT = isPPC64 ? MVT::i64 : MVT::i32;
+    EVT VT = isPPC64 && !Subtarget->isTargetXbox360() ? MVT::i64 : MVT::i32;
     SDNode *Tmp = CurDAG->getMachineNode(
         isPPC64 ? PPC::ADDIStocHA8 : PPC::ADDIStocHA, dl, VT, TOCbase, GA);
 
@@ -6192,7 +6192,7 @@ void PPCDAGToDAGISel::Select(SDNode *N) {
     }
 
     // Build the address relative to the TOC-pointer.
-    ReplaceNode(N, CurDAG->getMachineNode(PPC::ADDItocL8, dl, MVT::i64,
+    ReplaceNode(N, CurDAG->getMachineNode(PPC::ADDItocL8, dl, VT,
                                           SDValue(Tmp, 0), GA));
     return;
   }

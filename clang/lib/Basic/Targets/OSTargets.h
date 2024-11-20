@@ -812,6 +812,12 @@ public:
       : OSTargetInfo<Target>(Triple, Opts) {
     this->WCharType = TargetInfo::UnsignedShort;
     this->WIntType = TargetInfo::UnsignedShort;
+    this->LongWidth = this->LongAlign = 32;
+    this->PointerWidth = this->PointerAlign = 32;
+    this->IntMaxType = TargetInfo::SignedLongLong;
+    this->Int64Type = TargetInfo::SignedLongLong;
+    this->SizeType = TargetInfo::UnsignedInt;
+    this->resetDataLayout("E-m:w-p:32:32-Fi32-i64:64-n32:64");
   }
 };
 

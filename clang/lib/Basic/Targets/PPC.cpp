@@ -304,6 +304,13 @@ void PPCTargetInfo::getTargetDefines(const LangOptions &Opts,
     // Define __PPC and __powerpc for AIX XL C/C++ compatibility
     Builder.defineMacro("__PPC");
     Builder.defineMacro("__powerpc");
+  } else if (getTriple().isOSXbox360()) {
+    Builder.defineMacro("_PPC_");
+    Builder.defineMacro("_M_PPC");
+    Builder.defineMacro("_XBOX");
+    Builder.defineMacro("_SIZE_T_DEFINED");
+    Builder.defineMacro("XBOX_VER", "200");
+
   }
 
   // Target properties.

@@ -646,33 +646,35 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
   bool HasROPProtect = Subtarget.hasROPProtect();
   bool HasPrivileged = Subtarget.hasPrivileged();
 
-  Register SPReg       = isPPC64 ? PPC::X1  : PPC::R1;
+  const bool isXbox360 = Subtarget.isTargetXbox360();
+
+  Register SPReg       = isPPC64 && !isXbox360 ? PPC::X1  : PPC::R1;
   Register BPReg = RegInfo->getBaseRegister(MF);
-  Register FPReg       = isPPC64 ? PPC::X31 : PPC::R31;
-  Register LRReg       = isPPC64 ? PPC::LR8 : PPC::LR;
-  Register TOCReg      = isPPC64 ? PPC::X2 :  PPC::R2;
+  Register FPReg       = isPPC64 && !isXbox360 ? PPC::X31 : PPC::R31;
+  Register LRReg       = isPPC64 && !isXbox360 ? PPC::LR8 : PPC::LR;
+  Register TOCReg      = isPPC64 && !isXbox360 ? PPC::X2 :  PPC::R2;
   Register ScratchReg;
-  Register TempReg     = isPPC64 ? PPC::X12 : PPC::R12; // another scratch reg
+  Register TempReg     = isPPC64 && !isXbox360 ? PPC::X12 : PPC::R12; // another scratch reg
   //  ...(R12/X12 is volatile in both Darwin & SVR4, & can't be a function arg.)
-  const MCInstrDesc& MFLRInst = TII.get(isPPC64 ? PPC::MFLR8
+  const MCInstrDesc& MFLRInst = TII.get(isPPC64 && !isXbox360 ? PPC::MFLR8
                                                 : PPC::MFLR );
-  const MCInstrDesc& StoreInst = TII.get(isPPC64 ? PPC::STD
+  const MCInstrDesc& StoreInst = TII.get(isPPC64 && !isXbox360 ? PPC::STD
                                                  : PPC::STW );
-  const MCInstrDesc& StoreUpdtInst = TII.get(isPPC64 ? PPC::STDU
+  const MCInstrDesc& StoreUpdtInst = TII.get(isPPC64 && !isXbox360 ? PPC::STDU
                                                      : PPC::STWU );
-  const MCInstrDesc& StoreUpdtIdxInst = TII.get(isPPC64 ? PPC::STDUX
+  const MCInstrDesc& StoreUpdtIdxInst = TII.get(isPPC64 && !isXbox360 ? PPC::STDUX
                                                         : PPC::STWUX);
-  const MCInstrDesc& OrInst = TII.get(isPPC64 ? PPC::OR8
+  const MCInstrDesc& OrInst = TII.get(isPPC64 && !isXbox360 ? PPC::OR8
                                               : PPC::OR );
-  const MCInstrDesc& SubtractCarryingInst = TII.get(isPPC64 ? PPC::SUBFC8
+  const MCInstrDesc& SubtractCarryingInst = TII.get(isPPC64 && !isXbox360 ? PPC::SUBFC8
                                                             : PPC::SUBFC);
-  const MCInstrDesc& SubtractImmCarryingInst = TII.get(isPPC64 ? PPC::SUBFIC8
+  const MCInstrDesc& SubtractImmCarryingInst = TII.get(isPPC64 && !isXbox360 ? PPC::SUBFIC8
                                                                : PPC::SUBFIC);
-  const MCInstrDesc &MoveFromCondRegInst = TII.get(isPPC64 ? PPC::MFCR8
+  const MCInstrDesc &MoveFromCondRegInst = TII.get(isPPC64 && !isXbox360 ? PPC::MFCR8
                                                            : PPC::MFCR);
-  const MCInstrDesc &StoreWordInst = TII.get(isPPC64 ? PPC::STW8 : PPC::STW);
+  const MCInstrDesc &StoreWordInst = TII.get(isPPC64 && !isXbox360 ? PPC::STW8 : PPC::STW);
   const MCInstrDesc &HashST =
-      TII.get(isPPC64 ? (HasPrivileged ? PPC::HASHSTP8 : PPC::HASHST8)
+      TII.get(isPPC64 && !isXbox360 ? (HasPrivileged ? PPC::HASHSTP8 : PPC::HASHST8)
                       : (HasPrivileged ? PPC::HASHSTP : PPC::HASHST));
 
   // Regarding this assert: Even though LR is saved in the caller's frame (i.e.,

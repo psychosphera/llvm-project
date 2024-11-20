@@ -3389,6 +3389,7 @@ void SelectionDAGISel::SelectCodeCommon(SDNode *NodeToMatch,
 #endif
     BuiltinOpcodes Opcode =
         static_cast<BuiltinOpcodes>(MatcherTable[MatcherIndex++]);
+    //LLVM_DEBUG(dbgs() << "SelectCommonCode: Opc=" << Opcode << "\n");
     switch (Opcode) {
     case OPC_Scope: {
       // Okay, the semantics of this operation are that we should push a scope
@@ -3634,8 +3635,12 @@ void SelectionDAGISel::SelectCodeCommon(SDNode *NodeToMatch,
         VT = getSimpleVT(MatcherTable, MatcherIndex);
         break;
       }
-      if (!::CheckType(VT, N, TLI, CurDAG->getDataLayout()))
+      if (!::CheckType(VT.SimpleTy, N, TLI, CurDAG->getDataLayout())) {
+        LLVM_DEBUG(dbgs() << "SelectCommonCode: OPC_CheckType: ");
+        MVT(VT).dump();
+        N.dump();
         break;
+      }
       continue;
 
     case OPC_CheckTypeRes: {

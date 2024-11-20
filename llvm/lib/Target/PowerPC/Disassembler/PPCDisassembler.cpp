@@ -133,6 +133,12 @@ static DecodeStatus DecodeVRRCRegisterClass(MCInst &Inst, uint64_t RegNo,
   return decodeRegisterClass(Inst, RegNo, VRegs);
 }
 
+static DecodeStatus DecodeVR128RCRegisterClass(MCInst &Inst, uint64_t RegNo,
+                                            uint64_t Address,
+                                            const MCDisassembler *Decoder) {
+  return decodeRegisterClass(Inst, RegNo, VRegs);
+}
+
 static DecodeStatus DecodeVSRCRegisterClass(MCInst &Inst, uint64_t RegNo,
                                             uint64_t Address,
                                             const MCDisassembler *Decoder) {

@@ -975,6 +975,25 @@ void WinCOFFWriter::recordRelocation(MCAssembler &Asm,
     }
   }
 
+  if (Header.Machine == COFF::IMAGE_FILE_MACHINE_PPCBE) {
+    switch (Reloc.Data.Type) {
+    case COFF::IMAGE_REL_PPC_ABSOLUTE:
+    case COFF::IMAGE_REL_PPC_ADDR16:
+    case COFF::IMAGE_REL_PPC_ADDR32:
+    //case COFF::IMAGE_REL_PPC_ADDR32NB:
+    //case COFF::IMAGE_REL_PPC_TOKEN:
+    //case COFF::IMAGE_REL_PPC_SECTION:
+    case COFF::IMAGE_REL_PPC_SECREL:
+    case COFF::IMAGE_REL_PPC_REFHI:
+    case COFF::IMAGE_REL_PPC_REFLO:
+    case COFF::IMAGE_REL_PPC_REL24:
+      break;
+    default:
+      dbgs() << "Reloc.Data.Type=" << Reloc.Data.Type << "\n";
+      llvm_unreachable("unsupported relocation");
+    }
+  }
+
   // The fixed value never makes sense for section indices, ignore it.
   if (Fixup.getKind() == FK_SecRel_2)
     FixedValue = 0;

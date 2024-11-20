@@ -241,6 +241,19 @@ public:
   std::optional<MCFixupKind> getFixupKind(StringRef Name) const override;
 };
 
+class WinCOFFPPCAsmBackend : public PPCAsmBackend {
+public:
+  WinCOFFPPCAsmBackend(const Target &T, const Triple &TT)
+      : PPCAsmBackend(T, TT) {}
+
+  std::unique_ptr<MCObjectTargetWriter>
+  createObjectTargetWriter() const override {
+    return createPPCWinCOFFObjectWriter();
+  }
+
+  std::optional<MCFixupKind> getFixupKind(StringRef Name) const override;
+};
+
 } // end anonymous namespace
 
 std::optional<MCFixupKind>
@@ -306,6 +319,8 @@ MCAsmBackend *llvm::createPPCAsmBackend(const Target &T,
   const Triple &TT = STI.getTargetTriple();
   if (TT.isOSBinFormatXCOFF())
     return new XCOFFPPCAsmBackend(T, TT);
+  else if (TT.isOSBinFormatCOFF())
+    return new WinCOFFPPCAsmBackend(T, TT);
 
   if (TT.isOSBinFormatCOFF())
     return new CoffPPCAsmBackend(T, TT);

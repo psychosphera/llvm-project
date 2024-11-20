@@ -21,11 +21,7 @@
     "tablegen"
   ],
   "activationEvents": [
-    "onFileSystem:mlir.bytecode-mlir",
-    "onCustomEditor:mlir.bytecode",
-    "onLanguage:mlir",
-    "onLanguage:pdll",
-    "onLanguage:tablegen"
+    "onFileSystem:mlir.bytecode-mlir"
   ],
   "main": "./out/extension",
   "scripts": {

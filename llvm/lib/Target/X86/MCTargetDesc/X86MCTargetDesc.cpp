@@ -708,6 +708,14 @@ static MCInstrAnalysis *createX86MCInstrAnalysis(const MCInstrInfo *Info) {
   return new X86_MC::X86MCInstrAnalysis(Info);
 }
 
+static MCStreamer *
+createX86WinCOFFStreamer(const Triple& T, MCContext& C, 
+                         std::unique_ptr<MCAsmBackend>&& AB, 
+                         std::unique_ptr<MCObjectWriter>&& OW, 
+                         std::unique_ptr<MCCodeEmitter>&& CE) {
+  return createX86WinCOFFStreamer(C, std::move(AB), std::move(OW), std::move(CE));
+}
+
 // Force static initialization.
 extern "C" LLVM_C_ABI void LLVMInitializeX86TargetMC() {
   for (Target *T : {&getTheX86_32Target(), &getTheX86_64Target()}) {

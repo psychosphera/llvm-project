@@ -16,6 +16,7 @@
 #include "PPCELFStreamer.h"
 #include "PPCTargetStreamer.h"
 #include "PPCXCOFFStreamer.h"
+#include "PPCWinCOFFStreamer.h"
 #include "TargetInfo/PowerPCTargetInfo.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/StringRef.h"
@@ -442,6 +443,32 @@ public:
   }
 };
 
+class PPCTargetWinCOFFStreamer : public PPCTargetStreamer {
+public:
+  PPCTargetWinCOFFStreamer(MCStreamer &S) : PPCTargetStreamer(S) {}
+
+  void emitTCEntry(const MCSymbol &S,
+                   MCSymbolRefExpr::VariantKind Kind) override {
+    const MCAsmInfo *MAI = Streamer.getContext().getAsmInfo();
+    const unsigned PointerSize = MAI->getCodePointerSize();
+    Streamer.emitValueToAlignment(Align(PointerSize));
+    Streamer.emitValue(MCSymbolRefExpr::create(&S, Kind, Streamer.getContext()),
+                       PointerSize);
+  }
+
+  void emitMachine(StringRef CPU) override {
+    llvm_unreachable("Machine pseudo-ops are invalid for WinCOFF.");
+  }
+
+  void emitAbiVersion(int AbiVersion) override {
+    llvm_unreachable("ABI-version pseudo-ops are invalid for WinCOFF.");
+  }
+
+  void emitLocalEntry(MCSymbolELF *S, const MCExpr *LocalOffset) override {
+    llvm_unreachable("Local-entry pseudo-ops are invalid for WinCOFF.");
+  }
+};
+
 } // end anonymous namespace
 
 static MCTargetStreamer *createAsmTargetStreamer(MCStreamer &S,
@@ -461,7 +488,11 @@ createObjectTargetStreamer(MCStreamer &S, const MCSubtargetInfo &STI) {
     return new PPCTargetELFStreamer(S);
   if (TT.isOSBinFormatXCOFF())
     return new PPCTargetXCOFFStreamer(S);
-  return new PPCTargetMachOStreamer(S);
+  if (TT.isOSBinFormatCOFF())
+    return new PPCTargetWinCOFFStreamer(S);
+  if (TT.isOSBinFormatMachO())
+    return new PPCTargetMachOStreamer(S);
+  llvm_unreachable("no object target streamer for binary format.");
 }
 
 static MCInstPrinter *createPPCMCInstPrinter(const Triple &T,

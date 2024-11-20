@@ -144,6 +144,11 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializePowerPCTarget() {
   initializeGlobalISel(PR);
   initializePPCCTRLoopsPass(PR);
   initializePPCDAGToDAGISelLegacyPass(PR);
+  initializePPCPrepareIFuncsOnAIXPass(PR);
+  initializePPCLinuxAsmPrinterPass(PR);
+  initializePPCAIXAsmPrinterPass(PR);
+  initializePPCDAGToDAGISelPass(PR);
+  initializePPCMergeStringPoolPass(PR);
 }
 
 static bool isLittleEndianTriple(const Triple &T) {
@@ -163,15 +168,20 @@ static std::string getDataLayoutString(const Triple &T) {
 
   Ret += DataLayout::getManglingComponent(T);
 
-  // PPC32 has 32 bit pointers. The PS3 (OS Lv2) is a PPC64 machine with 32 bit
-  // pointers.
-  if (!is64Bit || T.getOS() == Triple::Lv2)
+  if (T.getOS() == Triple::Xbox360)
+    Ret += "-S128";
+
+  // PPC32 has 32 bit pointers. The PS3 (OS Lv2) and Xbox 360 are PPC64 machines
+  // with 32 bit pointers.
+  if (!is64Bit || (T.getOS() == Triple::Lv2 || T.getOS() == Triple::Xbox360))
     Ret += "-p:32:32";
 
   // If the target ABI uses function descriptors, then the alignment of function
   // pointers depends on the alignment used to emit the descriptor. Otherwise,
   // function pointers are aligned to 32 bits because the instructions must be.
-  if ((T.getArch() == Triple::ppc64 && !T.isPPC64ELFv2ABI())) {
+  if (T.isOSXbox360()) {
+    Ret += "-Fi32";
+  } else if (T.getArch() == Triple::ppc64 && !T.isPPC64ELFv2ABI()) {
     Ret += "-Fi64";
   } else if (T.isOSAIX()) {
     Ret += is64Bit ? "-Fi64" : "-Fi32";
@@ -185,16 +195,18 @@ static std::string getDataLayoutString(const Triple &T) {
 
   // PPC64 has 32 and 64 bit registers, PPC32 has only 32 bit ones.
   if (is64Bit)
-    Ret += "-i128:128-n32:64";
+    Ret += "-n32:64";
   else
     Ret += "-n32";
+
+  if(T.isOSXbox360())
+    Ret += "-v128:128";
 
   // Specify the vector alignment explicitly. For v256i1 and v512i1, the
   // calculated alignment would be 256*alignment(i1) and 512*alignment(i1),
   // which is 256 and 512 bytes - way over aligned.
   if (is64Bit && (T.isOSAIX() || T.isOSLinux()))
     Ret += "-S128-v256:256:256-v512:512:512";
-
   return Ret;
 }
 
@@ -237,6 +249,8 @@ static std::string computeFSAdditions(StringRef FS, CodeGenOptLevel OL,
 static std::unique_ptr<TargetLoweringObjectFile> createTLOF(const Triple &TT) {
   if (TT.isOSAIX())
     return std::make_unique<TargetLoweringObjectFileXCOFF>();
+  if (TT.isOSXbox360())
+    return std::make_unique<TargetLoweringObjectFileCOFF>();
 
   if (TT.isXbox360())
     return std::make_unique<TargetLoweringObjectFileCOFF>();
@@ -260,6 +274,8 @@ static PPCTargetMachine::PPCABI computeTargetABI(const Triple &TT,
   case Triple::ppc64:
     if (TT.isPPC64ELFv2ABI())
       return PPCTargetMachine::PPC_ABI_ELFv2;
+    else if (TT.isXbox360())
+      return PPCTargetMachine::PPC_ABI_XBOX_360;
     else
       return PPCTargetMachine::PPC_ABI_ELFv1;
   default:
@@ -277,7 +293,7 @@ static Reloc::Model getEffectiveRelocModel(const Triple &TT,
     return *RM;
 
   // Big Endian PPC and AIX default to PIC.
-  if (TT.getArch() == Triple::ppc64 || TT.isOSAIX())
+  if ((TT.getArch() == Triple::ppc64) || TT.isOSAIX())
     return Reloc::PIC_;
 
   // Rest are static by default.
@@ -299,6 +315,8 @@ getEffectivePPCCodeModel(const Triple &TT, std::optional<CodeModel::Model> CM,
     return CodeModel::Small;
   if (TT.isOSAIX())
     return CodeModel::Small;
+  if (TT.isOSXbox360())
+    return CodeModel::Medium; // Not sure if this is correct
 
   if (TT.isXbox360())
     return CodeModel::Small;

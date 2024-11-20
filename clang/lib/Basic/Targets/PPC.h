@@ -48,6 +48,7 @@ class LLVM_LIBRARY_VISIBILITY PPCTargetInfo : public TargetInfo {
     ArchDefineFuture = 1 << 16,
     ArchDefineA2 = 1 << 17,
     ArchDefineE500 = 1 << 18
+    ArchDefineXenon = 1 << 19
   } ArchDefineTypes;
 
   ArchDefineTypes ArchDefs = ArchDefineNone;
@@ -175,11 +176,12 @@ public:
                          ArchDefinePwr5x | ArchDefinePwr5 | ArchDefinePwr4 |
                          ArchDefinePpcgr | ArchDefinePpcsq)
               .Case("future",
-                    ArchDefineFuture | ArchDefinePwr11 | ArchDefinePwr10 |
-                        ArchDefinePwr9 | ArchDefinePwr8 | ArchDefinePwr7 |
-                        ArchDefinePwr6 | ArchDefinePwr5x | ArchDefinePwr5 |
-                        ArchDefinePwr4 | ArchDefinePpcgr | ArchDefinePpcsq)
+                    ArchDefineFuture | ArchDefinePwr10 | ArchDefinePwr9 |
+                        ArchDefinePwr8 | ArchDefinePwr7 | ArchDefinePwr6 |
+                        ArchDefinePwr5x | ArchDefinePwr5 | ArchDefinePwr4 |
+                        ArchDefinePpcgr | ArchDefinePpcsq)
               .Cases("8548", "e500", ArchDefineE500)
+              .Case("xenon", ArchDefineXenon)
               .Default(ArchDefineNone);
     }
     return CPUKnown;
@@ -455,9 +457,10 @@ class LLVM_LIBRARY_VISIBILITY PPC64TargetInfo : public PPCTargetInfo {
 public:
   PPC64TargetInfo(const llvm::Triple &Triple, const TargetOptions &Opts)
       : PPCTargetInfo(Triple, Opts) {
-    LongWidth = LongAlign = PointerWidth = PointerAlign = 64;
-    IntMaxType = SignedLong;
-    Int64Type = SignedLong;
+    PointerWidth = PointerAlign = Triple.isOSXbox360() ? 32 : 64;
+    LongWidth = LongAlign = Triple.isOSXbox360() ? 32 : 64;
+    IntMaxType = Triple.isOSXbox360() ? SignedLongLong : SignedLong;
+    Int64Type = Triple.isOSXbox360() ? SignedLongLong : SignedLong;
     std::string DataLayout;
 
     if (Triple.isOSAIX()) {
@@ -466,8 +469,13 @@ public:
       LongDoubleWidth = 64;
       LongDoubleAlign = DoubleAlign = 32;
       LongDoubleFormat = &llvm::APFloat::IEEEdouble();
-    } else if ((Triple.getArch() == llvm::Triple::ppc64le)) {
-      DataLayout = "e-m:e-Fn32-i64:64-i128:128-n32:64";
+    } else if (Triple.isOSXbox360()) {
+      // Xbox 360 only uses 32-bit pointers since the console only has 512MB of memory.
+      DataLayout = "E-m:w-S128-p:32:32-Fi32-i64:64-i128:128-n32:64-v128:128";
+      LongDoubleWidth = DoubleWidth = LongDoubleAlign = DoubleAlign = 64;
+    } else if ((Triple.getArch() == llvm::Triple::ppc64le) ||
+               Triple.isPPC64ELFv2ABI()) {
+      DataLayout = "e-m:e-Fn32-i64:64-n32:64";
       ABI = "elfv2";
     } else {
       DataLayout = "E-m:e";

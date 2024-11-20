@@ -1320,6 +1320,7 @@ void SelectionDAGLegalize::LegalizeOp(SDNode *Node) {
         if (Node->getNumValues() == 1) {
           // Verify the new types match the original. Glue is waived because
           // ISD::ADDC can be legalized by replacing Glue with an integer type.
+
           assert((Res.getValueType() == Node->getValueType(0) ||
                   Node->getValueType(0) == MVT::Glue) &&
                  "Type mismatch for custom legalized operation");
@@ -5036,7 +5037,7 @@ static MVT getPromotedVectorElementType(const TargetLowering &TLI,
 }
 
 void SelectionDAGLegalize::PromoteNode(SDNode *Node) {
-  LLVM_DEBUG(dbgs() << "Trying to promote node\n");
+  LLVM_DEBUG(dbgs() << "Trying to promote node " << Node->getOpcode() << "\n");
   SmallVector<SDValue, 8> Results;
   MVT OVT = Node->getSimpleValueType(0);
   if (Node->getOpcode() == ISD::UINT_TO_FP ||

@@ -15,6 +15,8 @@
 
 #include "llvm/MC/MCAsmInfoELF.h"
 #include "llvm/MC/MCAsmInfoXCOFF.h"
+#include "llvm/MC/MCExpr.h"
+#include "llvm/MC/MCValue.h"
 #include "llvm/MC/MCAsmInfoCOFF.h"
 
 namespace llvm {

@@ -676,9 +676,10 @@ Register PPCInstrInfo::generateLoadForNewConst(
 
   // Generate ADDIStocHA8
   Register VReg1 = MRI->createVirtualRegister(&PPC::G8RC_and_G8RC_NOX0RegClass);
+  const unsigned Reg = Subtarget.isTargetXbox360() ? PPC::R2 : PPC::X2;
   MachineInstrBuilder TOCOffset =
       BuildMI(*MF, MI->getDebugLoc(), get(PPC::ADDIStocHA8), VReg1)
-          .addReg(PPC::X2)
+          .addReg(Reg)
           .addConstantPoolIndex(Idx);
 
   assert((Ty->isFloatTy() || Ty->isDoubleTy()) &&
@@ -1680,6 +1681,13 @@ void PPCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                bool RenamableDest, bool RenamableSrc) const {
   // We can end up with self copies and similar things as a result of VSX copy
   // legalization. Promote them here.
+
+  // FIXME: this absolutely should not be necessary and may be (probably is) wrong, but it at least allows codegen to complete successfully
+  if(SrcReg.id() >= PPC::R0 && SrcReg.id() <= PPC::R31 && DestReg.id() >= PPC::X0 && DestReg.id() <= PPC::X31 && Subtarget.isTargetXbox360())
+    DestReg = MCRegister(DestReg - (PPC::X0 - PPC::R0));
+  if(DestReg.id() >= PPC::R0 && DestReg.id() <= PPC::R31 && SrcReg.id() >= PPC::X0 && SrcReg.id() <= PPC::X31 && Subtarget.isTargetXbox360())
+    SrcReg = MCRegister(SrcReg - (PPC::X0 - PPC::R0));
+
   const TargetRegisterInfo *TRI = &getRegisterInfo();
   if (PPC::F8RCRegClass.contains(DestReg) &&
       PPC::VSRCRegClass.contains(SrcReg)) {
@@ -1769,7 +1777,7 @@ void PPCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
     Opc = PPC::FMR;
   else if (PPC::CRRCRegClass.contains(DestReg, SrcReg))
     Opc = PPC::MCRF;
-  else if (PPC::VRRCRegClass.contains(DestReg, SrcReg))
+  else if (PPC::VRRCRegClass.contains(DestReg, SrcReg) || PPC::VR128RCRegClass.contains(DestReg, SrcReg))
     Opc = PPC::VOR;
   else if (PPC::VSRCRegClass.contains(DestReg, SrcReg))
     // There are two different ways this can be done:
@@ -1846,8 +1854,51 @@ void PPCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
         .addReg(SrcRegSub1)
         .addReg(SrcRegSub1, getKillRegState(KillSrc));
     return;
-  } else
+  } else if ((PPC::WACCRCRegClass.contains(DestReg) ||
+              PPC::WACC_HIRCRegClass.contains(DestReg)) &&
+             (PPC::WACCRCRegClass.contains(SrcReg) ||
+              PPC::WACC_HIRCRegClass.contains(SrcReg))) {
+
+    Opc = PPC::WACCRCRegClass.contains(SrcReg) ? PPC::DMXXEXTFDMR512
+                                               : PPC::DMXXEXTFDMR512_HI;
+
+    RegScavenger RS;
+    RS.enterBasicBlockEnd(MBB);
+    RS.backward(std::next(I));
+
+    Register TmpReg1 = RS.scavengeRegisterBackwards(PPC::VSRpRCRegClass, I,
+                                                    /* RestoreAfter */ false, 0,
+                                                    /* AllowSpill */ false);
+
+    RS.setRegUsed(TmpReg1);
+    Register TmpReg2 = RS.scavengeRegisterBackwards(PPC::VSRpRCRegClass, I,
+                                                    /* RestoreAfter */ false, 0,
+                                                    /* AllowSpill */ false);
+
+    BuildMI(MBB, I, DL, get(Opc))
+        .addReg(TmpReg1, RegState::Define)
+        .addReg(TmpReg2, RegState::Define)
+        .addReg(SrcReg, getKillRegState(KillSrc));
+
+    Opc = PPC::WACCRCRegClass.contains(DestReg) ? PPC::DMXXINSTDMR512
+                                                : PPC::DMXXINSTDMR512_HI;
+
+    BuildMI(MBB, I, DL, get(Opc), DestReg)
+        .addReg(TmpReg1, RegState::Kill)
+        .addReg(TmpReg2, RegState::Kill);
+
+    return;
+  } else if (PPC::DMRRCRegClass.contains(DestReg) &&
+             PPC::DMRRCRegClass.contains(SrcReg)) {
+
+    BuildMI(MBB, I, DL, get(PPC::DMMR), DestReg)
+        .addReg(SrcReg, getKillRegState(KillSrc));
+
+    return;
+  } else {
+    dbgs() << "copyPhysReg: DestReg=" << DestReg << ", SrcReg=" << SrcReg << "(X1=" << PPC::X1 << ", R1=" << PPC::R1 << ")\n";
     llvm_unreachable("Impossible reg-to-reg copy");
+  }
 
   const MCInstrDesc &MCID = get(Opc);
   if (MCID.getNumOperands() == 3)
@@ -1876,7 +1927,7 @@ unsigned PPCInstrInfo::getSpillIndex(const TargetRegisterClass *RC) const {
     OpcodeIndex = SOK_CRSpill;
   } else if (PPC::CRBITRCRegClass.hasSubClassEq(RC)) {
     OpcodeIndex = SOK_CRBitSpill;
-  } else if (PPC::VRRCRegClass.hasSubClassEq(RC)) {
+  } else if (PPC::VRRCRegClass.hasSubClassEq(RC)) { // TODO: VR128RCRegClass?
     OpcodeIndex = SOK_VRVectorSpill;
   } else if (PPC::VSRCRegClass.hasSubClassEq(RC)) {
     OpcodeIndex = SOK_VSXVectorSpill;
@@ -5506,7 +5557,7 @@ PPCInstrInfo::isSignOrZeroExtended(const unsigned Reg,
       }
     }
 
-    if (SrcReg != PPC::X3) {
+    if (SrcReg != PPC::X3 && SrcReg != PPC::R3) {
       // If this is a copy from another register, we recursively check source.
       auto SrcExt = isSignOrZeroExtended(SrcReg, BinOpDepth, MRI);
       return std::pair<bool, bool>(SrcExt.first || IsSExt,

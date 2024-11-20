@@ -525,6 +525,11 @@ public:
     Inst.addOperand(MCOperand::createReg(VRegs[getRegNum()]));
   }
 
+  void addRegVR128RCOperands(MCInst &Inst, unsigned N) const {
+    assert(N == 1 && "Invalid number of operands!");
+    Inst.addOperand(MCOperand::createReg(V128Regs[getRegNum()]));
+  }
+
   void addRegVSRCOperands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
     Inst.addOperand(MCOperand::createReg(VSRegs[getVSReg()]));
@@ -1342,7 +1347,6 @@ MCRegister PPCAsmParser::matchRegisterName(int64_t &IntVal) {
     IntVal = 256;
   else if (Name.starts_with("r"))
     RegNo = isPPC64() ? XRegs[IntVal] : RRegs[IntVal];
-
   getParser().Lex();
   return RegNo;
 }

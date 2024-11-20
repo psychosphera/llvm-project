@@ -42,6 +42,18 @@ PPCRegisterBankInfo::getRegBankFromRegClass(const TargetRegisterClass &RC,
   case PPC::VSSRCRegClassID:
   case PPC::F4RCRegClassID:
     return getRegBank(PPC::FPRRegBankID);
+  case PPC::VSRCRegClassID:
+  case PPC::VRRCRegClassID:
+  case PPC::VR128RCRegClassID:
+  case PPC::VRRC_with_sub_64_in_SPILLTOVSRRCRegClassID:
+  case PPC::VSRC_with_sub_64_in_SPILLTOVSRRCRegClassID:
+  case PPC::SPILLTOVSRRCRegClassID:
+  case PPC::VSLRCRegClassID:
+  case PPC::VSLRC_with_sub_64_in_SPILLTOVSRRCRegClassID:
+    return getRegBank(PPC::VECRegBankID);
+  case PPC::CRRCRegClassID:
+  case PPC::CRBITRCRegClassID:
+    return getRegBank(PPC::CRRegBankID);
   default:
     return PPCGenRegisterBankInfo::getRegBankFromRegClass(RC, Ty);
   }

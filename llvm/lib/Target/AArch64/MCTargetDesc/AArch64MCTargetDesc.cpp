@@ -387,7 +387,8 @@ static MCStreamer *createELFStreamer(const Triple &T, MCContext &Ctx,
 }
 
 static MCStreamer *
-createMachOStreamer(MCContext &Ctx, std::unique_ptr<MCAsmBackend> &&TAB,
+createMachOStreamer(MCContext &Ctx,
+                    std::unique_ptr<MCAsmBackend> &&TAB,
                     std::unique_ptr<MCObjectWriter> &&OW,
                     std::unique_ptr<MCCodeEmitter> &&Emitter) {
   return createMachOStreamer(Ctx, std::move(TAB), std::move(OW),

@@ -657,6 +657,7 @@ bool PPCInstructionSelector::selectConstantPool(
   if (!STI.isPPC64() || !STI.isLittleEndian())
     return false;
 
+  assert(!MF->getTarget().getTargetTriple().isXbox360() && "Xbox 360 doesn't use TOC.");
   MF->getInfo<PPCFunctionInfo>()->setUsesTOCBasePtr();
 
   const Register DstReg = I.getOperand(0).getReg();

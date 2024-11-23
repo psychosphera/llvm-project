@@ -110,8 +110,7 @@ protected:
       bool Changed = false;
 
       const auto &Subtarget = MBB.getParent()->getSubtarget<PPCSubtarget>();
-      const bool isPPC64 = Subtarget.isPPC64();
-      const unsigned TOCReg = isPPC64 && !Subtarget.isTargetXbox360() ? PPC::X2 : PPC::R2;
+      const unsigned TOCReg = Subtarget.getTOCPointerRegister();
 
       for (auto &MI : MBB) {
         if (!hasTOCLoReloc(MI))

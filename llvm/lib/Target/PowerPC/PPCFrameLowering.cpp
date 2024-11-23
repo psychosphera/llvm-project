@@ -648,11 +648,11 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
 
   const bool isXbox360 = Subtarget.isTargetXbox360();
 
-  Register SPReg       = isPPC64 && !isXbox360 ? PPC::X1  : PPC::R1;
-  Register BPReg = RegInfo->getBaseRegister(MF);
+  Register SPReg       = Subtarget.getStackPointerRegister();
+  Register BPReg       = RegInfo->getBaseRegister(MF);
   Register FPReg       = isPPC64 && !isXbox360 ? PPC::X31 : PPC::R31;
   Register LRReg       = isPPC64 && !isXbox360 ? PPC::LR8 : PPC::LR;
-  Register TOCReg      = isPPC64 && !isXbox360 ? PPC::X2 :  PPC::R2;
+  Register TOCReg      = Subtarget.getTOCPointerRegister();
   Register ScratchReg;
   Register TempReg     = isPPC64 && !isXbox360 ? PPC::X12 : PPC::R12; // another scratch reg
   //  ...(R12/X12 is volatile in both Darwin & SVR4, & can't be a function arg.)

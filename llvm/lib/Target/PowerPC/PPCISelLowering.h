@@ -1376,6 +1376,10 @@ namespace llvm {
                               SelectionDAG &DAG, SDValue ArgVal,
                               const SDLoc &dl) const;
 
+    SDValue LowerFormalArguments_Xbox360(
+      SDValue Chain, CallingConv::ID CallConv, bool isVarArg,
+      const SmallVectorImpl<ISD::InputArg> &Ins, const SDLoc &dl,
+      SelectionDAG &DAG, SmallVectorImpl<SDValue> &InVals) const;
     SDValue LowerFormalArguments_AIX(
         SDValue Chain, CallingConv::ID CallConv, bool isVarArg,
         const SmallVectorImpl<ISD::InputArg> &Ins, const SDLoc &dl,
@@ -1415,6 +1419,13 @@ namespace llvm {
                           const SDLoc &dl, SelectionDAG &DAG,
                           SmallVectorImpl<SDValue> &InVals,
                           const CallBase *CB) const;
+    SDValue LowerCall_Xbox360(SDValue Chain, SDValue Callee, CallFlags CFlags,
+                              const SmallVectorImpl<ISD::OutputArg> &Outs,
+                              const SmallVectorImpl<SDValue> &OutVals,
+                              const SmallVectorImpl<ISD::InputArg> &Ins,
+                              const SDLoc &dl, SelectionDAG &DAG,
+                              SmallVectorImpl<SDValue> &InVals,
+                              const CallBase *CB) const;
 
     SDValue lowerEH_SJLJ_SETJMP(SDValue Op, SelectionDAG &DAG) const;
     SDValue lowerEH_SJLJ_LONGJMP(SDValue Op, SelectionDAG &DAG) const;

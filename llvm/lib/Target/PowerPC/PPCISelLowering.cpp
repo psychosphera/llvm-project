@@ -7518,35 +7518,29 @@ SDValue PPCTargetLowering::LowerCall_Xbox360(
                     Callee, SPDiff, NumBytes, Ins, InVals, CB);
 }
 
-// Microsoft PPC32 Stack Frame Layout:
-//
-// Xbox 360 is presumably very similar if not identical,
-// but that's going to take some testing to figure out.
+// Xbox 360 Stack Frame Layout:
 //
 //              +-----------------------------------+
-//        +-->  |            Back chain             |
+//        +-->  |             Back chain            | <-- 1 word
+//        |     +-----------------------------------+ <-- 1 reserved word in between
+//        |     |           Return address          | <-- 1 word
+//        |     +-----------------------------------+ <-- 1 reserved word in between
+//        |     |             Saved GPRs            | <-- 0-18 double words
+//        |     +-----------------------------------+  
+//        |     |             Saved FPRs            | <-- 0-18 double words
+//        |     +-----------------------------------+ 
+//        |     |       Saved vector registers      | <-- 0-19 quad words, must be quad word-aligned 
+//        |     +-----------------------------------+ 
+//        |     |           Local variables         | <-- arbitary size, can be 0 bytes, must be quad word-aligned
 //        |     +-----------------------------------+
-//        |     |          Return address           | <------------+
-//        |     +-----------------------------------+              |
-//        |     |         FP CR save word           |              |
-//        |     +-----------------------------------+              | 232 bytes
-//        |     |          CR save word             |              |
-//        |     +-----------------------------------+              |
-//        |     |       FP register save area       | <-- f14-f31  |
-//        |     +-----------------------------------+              |
-//        |     |     Integer register save area    | <-- r14-r31 -+
+//        |     |          _alloca() space          | <-- arbitary size, can be 0 bytes, presumably must be at least double if not quad word-aligned
 //        |     +-----------------------------------+
-//        |     |           Parameters 8+           |
-//        |     +-----------------------------------+
-//        |     |           Parameters 1-8          | <-- must be reserved even if function uses less than 8 params
-//        |     +-----------------------------------+
-//        |     |          5 reserved words         |
-//        |     +-----------------------------------+
-// SP-->  +---  |            Back chain             |
-//              +-----------------------------------+
-//
-// Source: Raymond Chen, "The PowerPC 600 series, part 10"
-// https://devblogs.microsoft.com/oldnewthing/20180817-00/?p=99515
+//        |     |           Parameters 0-7          | <-- 0 (for leaf functions) or 8 (for non-leaf functions) double words
+//        |     +-----------------------------------+ <-- 2 reserved words in between
+// SP-->  +---  |            Back chain             | <-- 1 word (if non-leaf function) or 0 words (if leaf function)
+//              +-----------------------------------+ <-- 1 reserved word afterwards if non-leaf function
+// 
+// (for clarity's sake, word == 32 bits here)
 //
 
 // This is all copied from LowerFormalArguments_AIX, and most if not all of

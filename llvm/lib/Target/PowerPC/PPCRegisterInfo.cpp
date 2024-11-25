@@ -209,9 +209,9 @@ PPCRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
   // will use the @notoc relocation which will cause this function to set the
   // st_other bit to 1, thereby communicating to its caller that it arbitrarily
   // clobbers the TOC.
-  const unsigned Reg = Subtarget.getTOCPointerRegister();
-  bool SaveR2 = MF->getRegInfo().isAllocatable(Reg) &&
-                !Subtarget.isUsingPCRelativeCalls();
+  bool SaveR2 = Subtarget.isTargetXbox360() ? false 
+                : MF->getRegInfo().isAllocatable(Subtarget.getTOCPointerRegister()) &&
+                  !Subtarget.isUsingPCRelativeCalls();
 
   // Cold calling convention CSRs.
   if (MF->getFunction().getCallingConv() == CallingConv::Cold) {

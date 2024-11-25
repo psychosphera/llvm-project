@@ -110,11 +110,12 @@ protected:
       bool Changed = false;
 
       const auto &Subtarget = MBB.getParent()->getSubtarget<PPCSubtarget>();
-      const unsigned TOCReg = Subtarget.getTOCPointerRegister();
 
       for (auto &MI : MBB) {
         if (!hasTOCLoReloc(MI))
           continue;
+
+        const unsigned TOCReg = Subtarget.getTOCPointerRegister();
 
         MI.addOperand(MachineOperand::CreateReg(TOCReg,
                                                 false  /*IsDef*/,

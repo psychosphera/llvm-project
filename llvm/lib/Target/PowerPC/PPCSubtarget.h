@@ -213,7 +213,7 @@ public:
   bool isTargetXbox360() const { return TargetTriple.isOSXbox360(); }
 
   bool isAIXABI() const { return TargetTriple.isOSAIX(); }
-  bool isSVR4ABI() const { return !isAIXABI(); }
+  bool isSVR4ABI() const { return !isAIXABI() && !isTargetXbox360(); }
   bool isELFv2ABI() const;
 
   bool is64BitELFABI() const { return  isSVR4ABI() && isPPC64(); }

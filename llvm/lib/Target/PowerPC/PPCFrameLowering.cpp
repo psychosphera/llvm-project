@@ -43,6 +43,8 @@ EnablePEVectorSpills("ppc-enable-pe-vector-spills",
 static unsigned computeReturnSaveOffset(const PPCSubtarget &STI) {
   if (STI.isAIXABI())
     return STI.isPPC64() ? 16 : 8;
+  if (STI.isTargetXbox360()) 
+    return 8;
   // SVR4 ABI:
   return STI.isPPC64() ? 16 : 4;
 }
@@ -50,16 +52,21 @@ static unsigned computeReturnSaveOffset(const PPCSubtarget &STI) {
 static unsigned computeTOCSaveOffset(const PPCSubtarget &STI) {
   if (STI.isAIXABI())
     return STI.isPPC64() ? 40 : 20;
+  // Xbox 360 has no TOC
+  if (STI.isTargetXbox360()) 
+    return 0;
   return STI.isELFv2ABI() ? 24 : 40;
 }
 
 static unsigned computeFramePointerSaveOffset(const PPCSubtarget &STI) {
+  if (STI.isTargetXbox360())
+    return -16U;
   // First slot in the general register save area.
   return STI.isPPC64() ? -8U : -4U;
 }
 
 static unsigned computeLinkageSize(const PPCSubtarget &STI) {
-  if (STI.isAIXABI() || STI.isPPC64())
+  if ((STI.isAIXABI() || STI.isPPC64()) && !STI.isTargetXbox360())
     return (STI.isELFv2ABI() ? 4 : 6) * (STI.isPPC64() ? 8 : 4);
 
   // 32-bit SVR4 ABI:
@@ -76,6 +83,9 @@ static unsigned computeBasePointerSaveOffset(const PPCSubtarget &STI) {
 }
 
 static unsigned computeCRSaveOffset(const PPCSubtarget &STI) {
+  // Xbox 360 doesn't save CR
+  if (STI.isTargetXbox360())
+    return 0;
   return (STI.isAIXABI() && !STI.isPPC64()) ? 4 : 8;
 }
 
@@ -622,7 +632,8 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
   // Get the ABI.
   bool isSVR4ABI = Subtarget.isSVR4ABI();
   bool isELFv2ABI = Subtarget.isELFv2ABI();
-  assert((isSVR4ABI || Subtarget.isAIXABI()) && "Unsupported PPC ABI.");
+  bool isXbox360 = Subtarget.isTargetXbox360();
+  assert((isSVR4ABI || Subtarget.isAIXABI() || isXbox360) && "Unsupported PPC ABI.");
 
   // Work out frame sizes.
   uint64_t FrameSize = determineFrameLayoutAndUpdate(MF);
@@ -646,35 +657,32 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
   bool HasROPProtect = Subtarget.hasROPProtect();
   bool HasPrivileged = Subtarget.hasPrivileged();
 
-  const bool isXbox360 = Subtarget.isTargetXbox360();
-
   Register SPReg       = Subtarget.getStackPointerRegister();
   Register BPReg       = RegInfo->getBaseRegister(MF);
-  Register FPReg       = isPPC64 && !isXbox360 ? PPC::X31 : PPC::R31;
-  Register LRReg       = isPPC64 && !isXbox360 ? PPC::LR8 : PPC::LR;
-  Register TOCReg      = Subtarget.getTOCPointerRegister();
+  Register FPReg       = isPPC64 ? PPC::X31 : PPC::R31;
+  Register LRReg       = isPPC64 ? PPC::LR8 : PPC::LR;
   Register ScratchReg;
-  Register TempReg     = isPPC64 && !isXbox360 ? PPC::X12 : PPC::R12; // another scratch reg
+  Register TempReg     = isPPC64 ? PPC::X12 : PPC::R12; // another scratch reg
   //  ...(R12/X12 is volatile in both Darwin & SVR4, & can't be a function arg.)
-  const MCInstrDesc& MFLRInst = TII.get(isPPC64 && !isXbox360 ? PPC::MFLR8
+  const MCInstrDesc& MFLRInst = TII.get(isPPC64 ? PPC::MFLR8
                                                 : PPC::MFLR );
-  const MCInstrDesc& StoreInst = TII.get(isPPC64 && !isXbox360 ? PPC::STD
+  const MCInstrDesc& StoreInst = TII.get(isPPC64 ? PPC::STD
                                                  : PPC::STW );
-  const MCInstrDesc& StoreUpdtInst = TII.get(isPPC64 && !isXbox360 ? PPC::STDU
+  const MCInstrDesc& StoreUpdtInst = TII.get(isPPC64 ? PPC::STDU
                                                      : PPC::STWU );
-  const MCInstrDesc& StoreUpdtIdxInst = TII.get(isPPC64 && !isXbox360 ? PPC::STDUX
+  const MCInstrDesc& StoreUpdtIdxInst = TII.get(isPPC64 ? PPC::STDUX
                                                         : PPC::STWUX);
-  const MCInstrDesc& OrInst = TII.get(isPPC64 && !isXbox360 ? PPC::OR8
+  const MCInstrDesc& OrInst = TII.get(isPPC64 ? PPC::OR8
                                               : PPC::OR );
-  const MCInstrDesc& SubtractCarryingInst = TII.get(isPPC64 && !isXbox360 ? PPC::SUBFC8
+  const MCInstrDesc& SubtractCarryingInst = TII.get(isPPC64 ? PPC::SUBFC8
                                                             : PPC::SUBFC);
-  const MCInstrDesc& SubtractImmCarryingInst = TII.get(isPPC64 && !isXbox360 ? PPC::SUBFIC8
+  const MCInstrDesc& SubtractImmCarryingInst = TII.get(isPPC64 ? PPC::SUBFIC8
                                                                : PPC::SUBFIC);
-  const MCInstrDesc &MoveFromCondRegInst = TII.get(isPPC64 && !isXbox360 ? PPC::MFCR8
+  const MCInstrDesc &MoveFromCondRegInst = TII.get(isPPC64 ? PPC::MFCR8
                                                            : PPC::MFCR);
-  const MCInstrDesc &StoreWordInst = TII.get(isPPC64 && !isXbox360 ? PPC::STW8 : PPC::STW);
+  const MCInstrDesc &StoreWordInst = TII.get(isPPC64 ? PPC::STW8 : PPC::STW);
   const MCInstrDesc &HashST =
-      TII.get(isPPC64 && !isXbox360 ? (HasPrivileged ? PPC::HASHSTP8 : PPC::HASHST8)
+      TII.get(isPPC64 ? (HasPrivileged ? PPC::HASHSTP8 : PPC::HASHST8)
                       : (HasPrivileged ? PPC::HASHSTP : PPC::HASHST));
 
   // Regarding this assert: Even though LR is saved in the caller's frame (i.e.,
@@ -979,6 +987,7 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
   // save is required for the function.
   if (MustSaveTOC) {
     assert(isELFv2ABI && "TOC saves in the prologue only supported on ELFv2");
+    Register TOCReg      = Subtarget.getTOCPointerRegister();
     BuildMI(MBB, StackUpdateLoc, dl, TII.get(PPC::STD))
       .addReg(TOCReg, getKillRegState(true))
       .addImm(TOCSaveOffset)
@@ -2450,8 +2459,8 @@ bool PPCFrameLowering::spillCalleeSavedRegisters(
     if ((Reg == PPC::X2 || Reg == PPC::R2) && MustSaveTOC)
       continue;
 
-    // Insert the spill to the stack frame.
-    if (IsCRField) {
+    // Insert the spill to the stack frame. Xbox 360 doesn't save CRs.
+    if (IsCRField && !Subtarget.isTargetXbox360()) {
       PPCFunctionInfo *FuncInfo = MF->getInfo<PPCFunctionInfo>();
       if (!Subtarget.is32BitELFABI()) {
         // The actual spill will happen at the start of the prologue.
@@ -2471,7 +2480,7 @@ bool PPCFrameLowering::spillCalleeSavedRegisters(
                                                  getKillRegState(true)),
                                          I.getFrameIdx()));
       }
-    } else {
+    } else if (!Subtarget.isTargetXbox360()) {
       if (I.isSpilledToReg()) {
         unsigned Dst = I.getDstReg();
 

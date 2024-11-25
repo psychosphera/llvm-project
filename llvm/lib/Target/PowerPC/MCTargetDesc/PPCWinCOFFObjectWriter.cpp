@@ -49,6 +49,8 @@ unsigned PPCWinCOFFObjectWriter::getRelocType(MCContext &Ctx, const MCValue &Tar
   case FK_NONE:
   case PPC::fixup_ppc_nofixup:
     return llvm::COFF::IMAGE_REL_PPC_ABSOLUTE;
+  case PPC::fixup_ppc_half16ds:
+    return llvm::COFF::IMAGE_REL_PPC_ADDR14;
   case FK_Data_2:
     return llvm::COFF::IMAGE_REL_PPC_ADDR16;
   case FK_Data_4:
@@ -75,7 +77,7 @@ unsigned PPCWinCOFFObjectWriter::getRelocType(MCContext &Ctx, const MCValue &Tar
     // followed by a PAIR relocation whose SymbolTableIndex contains a signed 
     // 16-bit displacement that is added to the upper 16 bits that was taken 
     // from the location that is being relocated."
-    else if (Target.getSymA()->getKind() == MCSymbolRefExpr::VK_PPC_HI) {
+    else if (Target.getSymA()->getKind() == MCSymbolRefExpr::VK_PPC_HI || Target.getSymA()->getKind() == MCSymbolRefExpr::VK_PPC_HA) {
       return llvm::COFF::IMAGE_REL_PPC_REFHI;
     } else if (Target.getSymA()->getKind() == MCSymbolRefExpr::VK_PPC_TOC_LO) {
       return llvm::COFF::IMAGE_REL_PPC_GPREL;

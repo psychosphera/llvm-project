@@ -435,9 +435,9 @@ void PPCFastISel::PPCSimplifyAddress(Address &Addr, bool &UseOffset,
   }
 
   if (!UseOffset) {
-    IntegerType *OffsetTy = Subtarget->isTargetXbox360() ? Type::getInt32Ty(*Context) : Type::getInt64Ty(*Context);
+    IntegerType *OffsetTy = Type::getInt64Ty(*Context);
     const ConstantInt *Offset = ConstantInt::getSigned(OffsetTy, Addr.Offset);
-    const MVT OffVT = Subtarget->isTargetXbox360() ? MVT::i32 : MVT::i64;
+    const MVT OffVT = MVT::i64;
     IndexReg = PPCMaterializeInt(Offset, OffVT);
     assert(IndexReg && "Unexpected error in PPCMaterializeInt!");
   }
@@ -1422,7 +1422,7 @@ bool PPCFastISel::processCallArgs(SmallVectorImpl<Value*> &Args,
   // Prepare to assign register arguments.  Every argument uses up a
   // GPR protocol register even if it's passed in a floating-point
   // register (unless we're using the fast calling convention).
-  unsigned NextGPR = Subtarget->isTargetXbox360() ? PPC::R3 : PPC::X3;
+  unsigned NextGPR = PPC::X3;
   unsigned NextFPR = PPC::F1;
 
   // Process arguments.
@@ -1510,7 +1510,7 @@ bool PPCFastISel::finishCall(MVT RetVT, CallLoweringInfo &CLI, unsigned &NumByte
 
     // Ints smaller than a register still arrive in a full 64-bit
     // register, so make sure we recognize this.
-    if (RetVT == MVT::i8 || RetVT == MVT::i16 || (RetVT == MVT::i32 && !Subtarget->isTargetXbox360()))
+    if (RetVT == MVT::i8 || RetVT == MVT::i16 || RetVT == MVT::i32)
       CopyVT = MVT::i64;
 
     unsigned SourcePhysReg = VA.getLocReg();
@@ -1674,10 +1674,12 @@ bool PPCFastISel::fastLowerCall(CallLoweringInfo &CLI) {
     MIB.addReg(RegArgs[II], RegState::Implicit);
 
   // Direct calls, in both the ELF V1 and V2 ABIs, need the TOC register live
-  // into the call.
-  PPCFuncInfo->setUsesTOCBasePtr();
-  const unsigned Reg = Subtarget->isTargetXbox360() ? PPC::R2 : PPC::X2;
-  MIB.addReg(Reg, RegState::Implicit);
+  // into the call. Xbox 360 doesn't use TOC, so we skip that here.
+  if (!Subtarget->isTargetXbox360()) {
+    PPCFuncInfo->setUsesTOCBasePtr();
+    const unsigned TOCReg = PPC::X2;
+    MIB.addReg(TOCReg, RegState::Implicit);
+  }
 
   // Add a register mask with the call-preserved registers.  Proper
   // defs for return values will be added by setPhysRegsDeadExcept().
@@ -1722,7 +1724,7 @@ bool PPCFastISel::SelectRet(const Instruction *I) {
       CCValAssign &VA = ValLocs[0];
 
       Register RetReg = VA.getLocReg();
-      const MVT RetVT = Subtarget->isTargetXbox360() ? MVT::i32 : MVT::i64;
+      const MVT RetVT = VA.getLocVT();
       // We still need to worry about properly extending the sign. For example,
       // we could have only a single bit or a constant that needs zero
       // extension rather than sign extension. Make sure we pass the return
@@ -2021,10 +2023,11 @@ unsigned PPCFastISel::PPCMaterializeFP(const ConstantFP *CFP, MVT VT) {
 
   Register TmpReg = createResultReg(&PPC::G8RC_and_G8RC_NOX0RegClass);
 
+  assert(!Subtarget->isTargetXbox360() && "Xbox 360 doesn't use TOC.");
   PPCFuncInfo->setUsesTOCBasePtr();
   // For small code model, generate a LF[SD](0, LDtocCPT(Idx, X2)).
   if (CModel == CodeModel::Small) {
-    const unsigned Reg = Subtarget->isTargetXbox360() ? PPC::R2 : PPC::X2;
+    const unsigned Reg = PPC::X2;
     BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, TII.get(PPC::LDtocCPT),
             TmpReg)
       .addConstantPoolIndex(Idx).addReg(Reg);
@@ -2032,7 +2035,7 @@ unsigned PPCFastISel::PPCMaterializeFP(const ConstantFP *CFP, MVT VT) {
       .addImm(0).addReg(TmpReg).addMemOperand(MMO);
   } else {
     // Otherwise we generate LF[SD](Idx[lo], ADDIStocHA8(X2, Idx)).
-    const unsigned Reg = Subtarget->isTargetXbox360() ? PPC::R2 : PPC::X2;
+    const unsigned Reg = PPC::X2;
     BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, TII.get(PPC::ADDIStocHA8),
             TmpReg).addReg(Reg).addConstantPoolIndex(Idx);
     // But for large code model, we must generate a LDtocL followed
@@ -2084,10 +2087,11 @@ unsigned PPCFastISel::PPCMaterializeGV(const GlobalValue *GV, MVT VT) {
       if (Var->hasAttribute("toc-data"))
         return false;
 
+  assert(!Subtarget->isTargetXbox360() && "Xbox 360 doesn't use TOC.");
   PPCFuncInfo->setUsesTOCBasePtr();
   // For small code model, generate a simple TOC load.
   if (CModel == CodeModel::Small) {
-    const unsigned Reg = Subtarget->isTargetXbox360() ? PPC::R2 : PPC::X2;
+    const unsigned Reg = PPC::X2;
     BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, TII.get(PPC::LDtoc),
             DestReg)
         .addGlobalAddress(GV)
@@ -2102,7 +2106,7 @@ unsigned PPCFastISel::PPCMaterializeGV(const GlobalValue *GV, MVT VT) {
     //       ADDItocL8(ADDIStocHA8(%x2, GV), GV)
     // Either way, start with the ADDIStocHA8:
     Register HighPartReg = createResultReg(RC);
-    const unsigned Reg = Subtarget->isTargetXbox360() ? PPC::R2 : PPC::X2;
+    const unsigned Reg = PPC::X2;
     BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, TII.get(PPC::ADDIStocHA8),
             HighPartReg).addReg(Reg).addGlobalAddress(GV);
 

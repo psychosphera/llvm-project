@@ -804,7 +804,7 @@ void WinCOFFWriter::assignFileOffsets(MCAssembler &Asm,
       Offset += COFF::RelocationSize * Sec->Relocations.size();
 
       for (auto &Relocation : Sec->Relocations) {
-        assert(Relocation.Symb->getIndex() != -1);
+        assert(Relocation.Symb && Relocation.Symb->getIndex() != -1);
         Relocation.Data.SymbolTableIndex = Relocation.Symb->getIndex();
       }
     }
@@ -1001,8 +1001,16 @@ void WinCOFFWriter::recordRelocation(MCAssembler &Asm,
   if (Fixup.getKind() == FK_SecRel_2)
     FixedValue = 0;
 
-  if (OWriter.TargetObjectWriter->recordRelocation(Fixup))
+  if (OWriter.TargetObjectWriter->recordRelocation(Fixup)) {
     Sec->Relocations.push_back(Reloc);
+    if (Reloc.Data.Type == COFF::IMAGE_REL_PPC_REFLO || Reloc.Data.Type == COFF::IMAGE_REL_PPC_REFHI) {
+      COFFRelocation PairReloc;
+      PairReloc.Data.Type = COFF::IMAGE_REL_PPC_PAIR;
+      PairReloc.Data.SymbolTableIndex = 0;
+      PairReloc.Symb = Reloc.Symb;
+      Sec->Relocations.push_back(PairReloc);
+    }
+  }
 }
 
 static std::time_t getTime() {

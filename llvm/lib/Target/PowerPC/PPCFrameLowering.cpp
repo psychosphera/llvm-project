@@ -44,29 +44,34 @@ static unsigned computeReturnSaveOffset(const PPCSubtarget &STI) {
   if (STI.isAIXABI())
     return STI.isPPC64() ? 16 : 8;
   if (STI.isTargetXbox360()) 
-    return 8;
+    return 16;
   // SVR4 ABI:
   return STI.isPPC64() ? 16 : 4;
 }
 
 static unsigned computeTOCSaveOffset(const PPCSubtarget &STI) {
-  if (STI.isAIXABI())
-    return STI.isPPC64() ? 40 : 20;
-  // Xbox 360 has no TOC
+  // PPCFrameLowering's constructor calls this unconditionally, so 
+  // assert(!STI.isTargetXbox360()) isn't viable here. It's done in
+  // PPCFrameLowering::getTOCSaveOffset instead.
   if (STI.isTargetXbox360()) 
     return 0;
+  if (STI.isAIXABI())
+    return STI.isPPC64() ? 40 : 20;
   return STI.isELFv2ABI() ? 24 : 40;
 }
 
 static unsigned computeFramePointerSaveOffset(const PPCSubtarget &STI) {
+  // First slot in the general register save area.
   if (STI.isTargetXbox360())
     return -16U;
-  // First slot in the general register save area.
   return STI.isPPC64() ? -8U : -4U;
 }
 
 static unsigned computeLinkageSize(const PPCSubtarget &STI) {
-  if ((STI.isAIXABI() || STI.isPPC64()) && !STI.isTargetXbox360())
+  if (STI.isTargetXbox360()) 
+    return 16;
+
+  if ((STI.isAIXABI() || STI.isPPC64()))
     return (STI.isELFv2ABI() ? 4 : 6) * (STI.isPPC64() ? 8 : 4);
 
   // 32-bit SVR4 ABI:
@@ -78,14 +83,19 @@ static unsigned computeBasePointerSaveOffset(const PPCSubtarget &STI) {
   if (STI.is32BitELFABI() && STI.getTargetMachine().isPositionIndependent())
     return -12U;
 
+  if (STI.isTargetXbox360())
+    return -24U;
   // Second slot in the general purpose register save area.
   return STI.isPPC64() ? -16U : -8U;
 }
 
 static unsigned computeCRSaveOffset(const PPCSubtarget &STI) {
-  // Xbox 360 doesn't save CR
+  // PPCFrameLowering's constructor calls this unconditionally, so 
+  // assert(!STI.isTargetXbox360()) isn't viable here. It's done in
+  // PPCFrameLowering::getCRSaveOffset instead.
   if (STI.isTargetXbox360())
     return 0;
+
   return (STI.isAIXABI() && !STI.isPPC64()) ? 4 : 8;
 }
 
@@ -2721,6 +2731,7 @@ bool PPCFrameLowering::restoreCalleeSavedRegisters(
 }
 
 uint64_t PPCFrameLowering::getTOCSaveOffset() const {
+  assert(!Subtarget.isTargetXbox360() && "Xbox 360 has no TOC.");
   return TOCSaveOffset;
 }
 

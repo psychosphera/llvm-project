@@ -246,10 +246,9 @@ static std::unique_ptr<TargetLoweringObjectFile> createTLOF(const Triple &TT) {
 
 static PPCTargetMachine::PPCABI computeTargetABI(const Triple &TT,
                                                  const TargetOptions &Options) {
-  dbgs() << "computeTargetABI: ABIName=" << Options.MCOptions.getABIName() << "\n";
   if (Options.MCOptions.getABIName().starts_with("elfv1"))
     return PPCTargetMachine::PPC_ABI_ELFv1;
-  else if (Options.MCOptions.getABIName().starts_with("elfv2") || Options.MCOptions.getABIName().starts_with("msvc") || Options.MCOptions.getABIName().empty())
+  else if (Options.MCOptions.getABIName().starts_with("elfv2"))
     return PPCTargetMachine::PPC_ABI_ELFv2;
 
   assert(Options.MCOptions.getABIName().empty() &&
@@ -261,6 +260,8 @@ static PPCTargetMachine::PPCABI computeTargetABI(const Triple &TT,
   case Triple::ppc64:
     if (TT.isPPC64ELFv2ABI())
       return PPCTargetMachine::PPC_ABI_ELFv2;
+    else if (TT.isXbox360()) 
+      return PPCTargetMachine::PPC_ABI_XBOX_360;
     else
       return PPCTargetMachine::PPC_ABI_ELFv1;
   default:

@@ -33,7 +33,7 @@ public:
 } // end anonymous namespace
 
 PPCWinCOFFObjectWriter::PPCWinCOFFObjectWriter()
-    : MCWinCOFFObjectTargetWriter(llvm::COFF::IMAGE_FILE_MACHINE_XENON) { }
+    : MCWinCOFFObjectTargetWriter(llvm::COFF::IMAGE_FILE_MACHINE_PPCBE) { }
 
 std::unique_ptr<MCObjectTargetWriter>
 llvm::createPPCWinCOFFObjectWriter() {
@@ -44,7 +44,16 @@ unsigned PPCWinCOFFObjectWriter::getRelocType(MCContext &Ctx, const MCValue &Tar
                                 const MCFixup &Fixup, bool IsCrossSection,
                                 const MCAsmBackend &MAB) const
 {
-  switch((unsigned)Fixup.getKind()) {
+  MCSymbolRefExpr::VariantKind Modifier =
+    Target.isAbsolute() ? MCSymbolRefExpr::VK_None : Target.getSymA()->getKind();
+  const unsigned FixupKind = Fixup.getKind();
+  assert(Modifier != MCSymbolRefExpr::VK_PPC_TOC && 
+         Modifier != MCSymbolRefExpr::VK_PPC_TOC_HA &&
+         Modifier != MCSymbolRefExpr::VK_PPC_TOC_HI &&
+         Modifier != MCSymbolRefExpr::VK_PPC_TOC_LO &&
+         Modifier != MCSymbolRefExpr::VK_PPC_TOCBASE &&
+         "WinCOFF doesn't use TOC for any implemented platform");
+  switch(FixupKind) {
   // TODO: make sure these are all valid for the target's variant kind.
   case FK_NONE:
   case PPC::fixup_ppc_nofixup:
@@ -54,7 +63,14 @@ unsigned PPCWinCOFFObjectWriter::getRelocType(MCContext &Ctx, const MCValue &Tar
   case FK_Data_2:
     return llvm::COFF::IMAGE_REL_PPC_ADDR16;
   case FK_Data_4:
-    return llvm::COFF::IMAGE_REL_PPC_ADDR32;
+    switch (Modifier) {
+    case MCSymbolRefExpr::VK_COFF_IMGREL32:
+      return COFF::IMAGE_REL_PPC_ADDR32NB;
+    case MCSymbolRefExpr::VK_SECREL:
+      return COFF::IMAGE_REL_PPC_SECREL;
+    default:
+      return COFF::IMAGE_REL_PPC_ADDR32;
+    }
   case FK_Data_8:
     return llvm::COFF::IMAGE_REL_PPC_ADDR64;
   case FK_GPRel_2:
@@ -70,26 +86,17 @@ unsigned PPCWinCOFFObjectWriter::getRelocType(MCContext &Ctx, const MCValue &Tar
   case PPC::fixup_ppc_brcond14abs:
     return llvm::COFF::IMAGE_REL_PPC_ADDR14;
   case PPC::fixup_ppc_half16:
-    if (Target.getSymA()->getKind() == MCSymbolRefExpr::VK_PPC_LO)
+    switch (Modifier) {
+    case MCSymbolRefExpr::VK_PPC_LO: 
       return llvm::COFF::IMAGE_REL_PPC_REFLO;
-    // FIXME: from Microsoft's PE specification:
-    // IMAGE_REL_PPC_REFHI: "This relocation must be immediately 
-    // followed by a PAIR relocation whose SymbolTableIndex contains a signed 
-    // 16-bit displacement that is added to the upper 16 bits that was taken 
-    // from the location that is being relocated."
-    else if (Target.getSymA()->getKind() == MCSymbolRefExpr::VK_PPC_HI || Target.getSymA()->getKind() == MCSymbolRefExpr::VK_PPC_HA) {
+    case MCSymbolRefExpr::VK_PPC_HI:
+    case MCSymbolRefExpr::VK_PPC_HA:
       return llvm::COFF::IMAGE_REL_PPC_REFHI;
-    } else if (Target.getSymA()->getKind() == MCSymbolRefExpr::VK_PPC_TOC_LO) {
-      return llvm::COFF::IMAGE_REL_PPC_GPREL;
-      // FIXME: definitely not right. The spec does not provide a half16 TOC 
-      // fixup for the upper 16 bits, only the lower
-    } else if (Target.getSymA()->getKind() == MCSymbolRefExpr::VK_PPC_TOC_HA) {
-      return llvm::COFF::IMAGE_REL_PPC_GPREL;
-    } else {
+    default:
       [[fallthrough]];
     }
-  // TODO: IMAGE_REL_PPC_ADDR32NB, IMAGE_REL_PPC_PAIR, 
-  // IMAGE_REL_PPC_SECRELLO, IMAGE_REL_PPC_TOKEN
+    [[fallthrough]];
+  // TODO: IMAGE_REL_PPC_SECRELLO, IMAGE_REL_PPC_TOKEN
   default:
     dbgs() << "FixupKind=" << Fixup.getKind() << ", VariantKind=" << Target.getSymA()->getKind() << "\n";
     llvm_unreachable("Unimplemented PPC fixup.");

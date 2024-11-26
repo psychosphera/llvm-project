@@ -6840,9 +6840,6 @@ SDValue SelectionDAG::getNode(unsigned Opcode, const SDLoc &DL, EVT VT,
   case ISD::ADD:
   case ISD::SUB:
     assert(VT.isInteger() && "This operator does not apply to FP types!");
-    N1.dump();
-    N2.dump();
-    LLVM_DEBUG(dbgs() << "Op: " << Opcode << ", VT: " << VT << ", N1VT: " << N1.getValueType() << ", N2VT: " << N2.getValueType() << "\n");
     assert(N1.getValueType() == N2.getValueType() &&
            N1.getValueType() == VT && "Binary operator types must match!");
     // (X ^|+- 0) -> X.  This commonly occurs when legalizing i64 values, so

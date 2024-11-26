@@ -6073,6 +6073,7 @@ void PPCDAGToDAGISel::Select(SDNode *N) {
     return;
   }
   case PPCISD::TOC_ENTRY: {
+    assert(!Subtarget->isTargetXbox360() && "Xbox 360 has no TOC.");
     const bool isPPC64 = Subtarget->isPPC64();
     const bool isELFABI = Subtarget->isSVR4ABI();
     const bool isAIXABI = Subtarget->isAIXABI();
@@ -6164,7 +6165,7 @@ void PPCDAGToDAGISel::Select(SDNode *N) {
     SDValue GA = N->getOperand(0);
     SDValue TOCbase = N->getOperand(1);
 
-    EVT VT = isPPC64 && !Subtarget->isTargetXbox360() ? MVT::i64 : MVT::i32;
+    EVT VT = isPPC64 ? MVT::i64 : MVT::i32;
     SDNode *Tmp = CurDAG->getMachineNode(
         isPPC64 ? PPC::ADDIStocHA8 : PPC::ADDIStocHA, dl, VT, TOCbase, GA);
 

@@ -396,7 +396,7 @@ BitVector PPCRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
 
   // Always reserve r2 on AIX for now.
   // TODO: Make r2 allocatable on AIX/XCOFF for some leaf functions.
-  if (Subtarget.isAIXABI())
+  if (Subtarget.isAIXABI() || Subtarget.isTargetXbox360())
     markSuperRegs(Reserved, PPC::R2);  // System-reserved register
 
   // On PPC64, r13 is the thread pointer. Never allocate this register.
@@ -542,9 +542,10 @@ bool PPCRegisterInfo::isCallerPreservedPhysReg(MCRegister PhysReg,
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const MachineFrameInfo &MFI = MF.getFrameInfo();
 
-  if (!Subtarget.is64BitELFABI() && !Subtarget.isAIXABI())
+  if (!Subtarget.is64BitELFABI() && !Subtarget.isAIXABI() && !Subtarget.isTargetXbox360())
     return false;
-  if (PhysReg == Subtarget.getTOCPointerRegister())
+  // Subtarget.getTOCPointerRegister() will throw an assertion for Xbox 360 since it doesn't use TOC
+  if (!Subtarget.isTargetXbox360() || PhysReg == Subtarget.getTOCPointerRegister())
     // X2/R2 is guaranteed to be preserved within a function if it is reserved.
     // The reason it's reserved is that it's the TOC pointer (and the function
     // uses the TOC). In functions where it isn't reserved (i.e. leaf functions

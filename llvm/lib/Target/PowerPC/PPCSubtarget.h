@@ -190,9 +190,15 @@ public:
   }
 
   unsigned  getRedZoneSize() const {
-    if (isPPC64())
+    if (isPPC64()) {
+      if (isTargetXbox360()) {
+        // 18*8 GPRs (R14-R31) + 18*8 FPRs (FPR14-FPR31) + 64*16 (VR64-VR127)
+        // + misc (return addr, FPCSR, and presumably XER and CTR)
+        return 1344;
+      }
       // 288 bytes = 18*8 (FPRs) + 18*8 (GPRs, GPR13 reserved)
       return 288;
+    }
 
     // AIX PPC32: 220 bytes = 18*8 (FPRs) + 19*4 (GPRs);
     // PPC32 SVR4ABI has no redzone.

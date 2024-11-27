@@ -1682,12 +1682,12 @@ void PPCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                MCRegister SrcReg, bool KillSrc) const {
   // We can end up with self copies and similar things as a result of VSX copy
   // legalization. Promote them here.
+
+  // FIXME: this absolutely should not be necessary and may be (probably is) wrong, but it at least allows codegen to complete successfully
   if(SrcReg.id() >= PPC::R0 && SrcReg.id() <= PPC::R31 && DestReg.id() >= PPC::X0 && DestReg.id() <= PPC::X31 && Subtarget.isTargetXbox360()) 
     DestReg = MCRegister(DestReg - (PPC::X0 - PPC::R0));
   if(DestReg.id() >= PPC::R0 && DestReg.id() <= PPC::R31 && SrcReg.id() >= PPC::X0 && SrcReg.id() <= PPC::X31 && Subtarget.isTargetXbox360()) 
     SrcReg = MCRegister(SrcReg - (PPC::X0 - PPC::R0));
-
-  LLVM_DEBUG(dbgs() << "copyPhysReg: DestReg=" << DestReg << ", SrcReg=" << SrcReg << "(X1=" << PPC::X1 << ", R1=" << PPC::R1 << ")\n");
     
   const TargetRegisterInfo *TRI = &getRegisterInfo();
   if (PPC::F8RCRegClass.contains(DestReg) &&
@@ -1855,8 +1855,10 @@ void PPCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
         .addReg(SrcRegSub1)
         .addReg(SrcRegSub1, getKillRegState(KillSrc));
     return;
-  } else
+  } else {
+    dbgs() << "copyPhysReg: DestReg=" << DestReg << ", SrcReg=" << SrcReg << "(X1=" << PPC::X1 << ", R1=" << PPC::R1 << ")\n";
     llvm_unreachable("Impossible reg-to-reg copy");
+  }
 
   const MCInstrDesc &MCID = get(Opc);
   if (MCID.getNumOperands() == 3)

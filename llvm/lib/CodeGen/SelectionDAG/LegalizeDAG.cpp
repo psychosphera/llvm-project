@@ -1309,8 +1309,6 @@ void SelectionDAGLegalize::LegalizeOp(SDNode *Node) {
         if (Node->getNumValues() == 1) {
           // Verify the new types match the original. Glue is waived because
           // ISD::ADDC can be legalized by replacing Glue with an integer type.
-          Res.dump();
-          Node->dump();
 
           assert((Res.getValueType() == Node->getValueType(0) ||
                   Node->getValueType(0) == MVT::Glue) &&
@@ -5027,9 +5025,7 @@ void SelectionDAGLegalize::PromoteNode(SDNode *Node) {
   if (Node->getOpcode() == ISD::BR_CC ||
       Node->getOpcode() == ISD::SELECT_CC)
     OVT = Node->getOperand(2).getSimpleValueType();
-    dbgs() << "1\n";
   MVT NVT = TLI.getTypeToPromoteTo(Node->getOpcode(), OVT);
-    dbgs() << "2\n";
   SDLoc dl(Node);
   SDValue Tmp1, Tmp2, Tmp3, Tmp4;
   switch (Node->getOpcode()) {

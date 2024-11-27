@@ -92,8 +92,8 @@ unsigned PPCWinCOFFObjectWriter::getRelocType(MCContext &Ctx, const MCValue &Tar
     case MCSymbolRefExpr::VK_PPC_HI:
     case MCSymbolRefExpr::VK_PPC_HA:
       return llvm::COFF::IMAGE_REL_PPC_REFHI;
-    default:
-      [[fallthrough]];
+    default: 
+      ;
     }
     [[fallthrough]];
   // TODO: IMAGE_REL_PPC_SECRELLO, IMAGE_REL_PPC_TOKEN

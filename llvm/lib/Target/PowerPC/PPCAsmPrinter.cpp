@@ -1987,9 +1987,8 @@ void PPCLinuxAsmPrinter::emitStartOfAsmFile(Module &M) {
 
 void PPCLinuxAsmPrinter::emitFunctionEntryLabel() {
   // linux/ppc32 - Normal entry label.
-  if ((!Subtarget->isPPC64() || TM.getTargetTriple().isOSBinFormatCOFF()) &&
-      (!isPositionIndependent() ||
-       MF->getFunction().getParent()->getPICLevel() == PICLevel::SmallPIC))
+  if (!Subtarget->isPPC64() &&
+      (!isPositionIndependent() || MF->getFunction().getParent()->getPICLevel() == PICLevel::SmallPIC))
     return AsmPrinter::emitFunctionEntryLabel();
 
   if (!Subtarget->isPPC64()) {

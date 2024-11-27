@@ -1990,7 +1990,9 @@ bool PPCFastISel::fastSelectInstruction(const Instruction *I) {
 // the register number (or zero if we failed to handle it).
 unsigned PPCFastISel::PPCMaterializeFP(const ConstantFP *CFP, MVT VT) {
   // If this is a PC-Rel function, let SDISel handle constant pool.
-  if (Subtarget->isUsingPCRelativeCalls())
+  // Xbox 360 doesn't use TOC, so the implementation here is invalid,
+  // but SDISel seems to handle it just fine
+  if (Subtarget->isUsingPCRelativeCalls() || Subtarget->isTargetXbox360())
     return false;
 
   // No plans to handle long double here.
@@ -2061,7 +2063,9 @@ unsigned PPCFastISel::PPCMaterializeFP(const ConstantFP *CFP, MVT VT) {
 // the register number (or zero if we failed to handle it).
 unsigned PPCFastISel::PPCMaterializeGV(const GlobalValue *GV, MVT VT) {
   // If this is a PC-Rel function, let SDISel handle GV materialization.
-  if (Subtarget->isUsingPCRelativeCalls())
+  // Xbox 360 doesn't use TOC, so the implementation here is invalid,
+  // but SDISel seems to handle it just fine.
+  if (Subtarget->isUsingPCRelativeCalls() || Subtarget->isTargetXbox360())
     return false;
 
   assert(VT == MVT::i64 || VT == MVT::i32 && "Non-address!");

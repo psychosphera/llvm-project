@@ -3067,8 +3067,8 @@ public:
 void SelectionDAGISel::SelectCodeCommon(SDNode *NodeToMatch,
                                         const unsigned char *MatcherTable,
                                         unsigned TableSize) {
-  LLVM_DEBUG(dbgs() << "SelectCommonCode: Node: ");
-  LLVM_DEBUG(NodeToMatch->dump());
+  //LLVM_DEBUG(dbgs() << "SelectCommonCode: Node: ");
+  //LLVM_DEBUG(NodeToMatch->dump());
   // FIXME: Should these even be selected?  Handle these cases in the caller?
   switch (NodeToMatch->getOpcode()) {
   default:
@@ -3225,7 +3225,7 @@ void SelectionDAGISel::SelectCodeCommon(SDNode *NodeToMatch,
 #endif
     BuiltinOpcodes Opcode =
         static_cast<BuiltinOpcodes>(MatcherTable[MatcherIndex++]);
-    LLVM_DEBUG(dbgs() << "SelectCommonCode: Opc=" << Opcode << "\n");
+    //LLVM_DEBUG(dbgs() << "SelectCommonCode: Opc=" << Opcode << "\n");
     switch (Opcode) {
     case OPC_Scope: {
       // Okay, the semantics of this operation are that we should push a scope
@@ -3465,7 +3465,7 @@ void SelectionDAGISel::SelectCodeCommon(SDNode *NodeToMatch,
         VT = MVT::i32;
         break;
       case OPC_CheckTypeI64:
-        VT = TM.getTargetTriple().isXbox360() && N.getValueType() != MVT::i64 ? MVT::i32 : MVT::i64;
+        VT = MVT::i64;
         break;
       default:
         VT = static_cast<MVT::SimpleValueType>(MatcherTable[MatcherIndex++]);

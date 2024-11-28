@@ -1778,7 +1778,7 @@ void PPCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
     Opc = PPC::FMR;
   else if (PPC::CRRCRegClass.contains(DestReg, SrcReg))
     Opc = PPC::MCRF;
-  else if (PPC::VRRCRegClass.contains(DestReg, SrcReg))
+  else if (PPC::VRRCRegClass.contains(DestReg, SrcReg) || PPC::VR128RCRegClass.contains(DestReg, SrcReg))
     Opc = PPC::VOR;
   else if (PPC::VSRCRegClass.contains(DestReg, SrcReg))
     // There are two different ways this can be done:
@@ -1887,7 +1887,7 @@ unsigned PPCInstrInfo::getSpillIndex(const TargetRegisterClass *RC) const {
     OpcodeIndex = SOK_CRSpill;
   } else if (PPC::CRBITRCRegClass.hasSubClassEq(RC)) {
     OpcodeIndex = SOK_CRBitSpill;
-  } else if (PPC::VRRCRegClass.hasSubClassEq(RC)) {
+  } else if (PPC::VRRCRegClass.hasSubClassEq(RC)) { // TODO: VR128RCRegClass?
     OpcodeIndex = SOK_VRVectorSpill;
   } else if (PPC::VSRCRegClass.hasSubClassEq(RC)) {
     OpcodeIndex = SOK_VSXVectorSpill;

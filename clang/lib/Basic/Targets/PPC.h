@@ -46,7 +46,8 @@ class LLVM_LIBRARY_VISIBILITY PPCTargetInfo : public TargetInfo {
     ArchDefinePwr10 = 1 << 14,
     ArchDefineFuture = 1 << 15,
     ArchDefineA2 = 1 << 16,
-    ArchDefineE500 = 1 << 18
+    ArchDefineE500 = 1 << 18,
+    ArchDefineXenon = 1 << 19
   } ArchDefineTypes;
 
   ArchDefineTypes ArchDefs = ArchDefineNone;
@@ -171,6 +172,7 @@ public:
                         ArchDefinePwr5x | ArchDefinePwr5 | ArchDefinePwr4 |
                         ArchDefinePpcgr | ArchDefinePpcsq)
               .Cases("8548", "e500", ArchDefineE500)
+              .Case("xenon", ArchDefineXenon)
               .Default(ArchDefineNone);
     }
     return CPUKnown;

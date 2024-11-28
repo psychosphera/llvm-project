@@ -394,8 +394,8 @@ BitVector PPCRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
     markSuperRegs(Reserved, PPC::R13); // Small Data Area pointer register
   }
 
-  // Always reserve r2 on AIX for now.
-  // TODO: Make r2 allocatable on AIX/XCOFF for some leaf functions.
+  // Always reserve r2 on AIX and Xbox 360 for now.
+  // TODO: Make r2 allocatable on AIX/XCOFF and Xbox360/WinCOFF for some leaf functions.
   if (Subtarget.isAIXABI() || Subtarget.isTargetXbox360())
     markSuperRegs(Reserved, PPC::R2);  // System-reserved register
 
@@ -418,9 +418,12 @@ BitVector PPCRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
     markSuperRegs(Reserved, PPC::R30);
 
   // Reserve Altivec registers when Altivec is unavailable.
-  if (!Subtarget.hasAltivec())
+  if (!Subtarget.hasAltivec()) {
     for (MCRegister Reg : PPC::VRRCRegClass)
       markSuperRegs(Reserved, Reg);
+    for (MCRegister Reg : PPC::VR128RCRegClass)
+      markSuperRegs(Reserved, Reg);
+  }
 
   if (Subtarget.isAIXABI() && Subtarget.hasAltivec() &&
       !TM.getAIXExtendedAltivecABI()) {
@@ -545,7 +548,7 @@ bool PPCRegisterInfo::isCallerPreservedPhysReg(MCRegister PhysReg,
   if (!Subtarget.is64BitELFABI() && !Subtarget.isAIXABI() && !Subtarget.isTargetXbox360())
     return false;
   // Subtarget.getTOCPointerRegister() will throw an assertion for Xbox 360 since it doesn't use TOC
-  if (!Subtarget.isTargetXbox360() || PhysReg == Subtarget.getTOCPointerRegister())
+  if (Subtarget.isTargetXbox360() || PhysReg == Subtarget.getTOCPointerRegister())
     // X2/R2 is guaranteed to be preserved within a function if it is reserved.
     // The reason it's reserved is that it's the TOC pointer (and the function
     // uses the TOC). In functions where it isn't reserved (i.e. leaf functions
@@ -672,6 +675,11 @@ unsigned PPCRegisterInfo::getRegPressureLimit(const TargetRegisterClass *RC,
       return 52 - DefaultSafety;
   }
     return 64 - DefaultSafety;
+  case PPC::VR128RCRegClassID: {
+    const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
+    assert(Subtarget.isTargetXbox360() && "Only Xbox 360 uses VMX128.");
+    return 128 - DefaultSafety;
+  }
   case PPC::CRRCRegClassID:
     return 8 - DefaultSafety;
   }

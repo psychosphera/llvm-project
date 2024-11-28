@@ -523,6 +523,11 @@ public:
     Inst.addOperand(MCOperand::createReg(VRegs[getRegNum()]));
   }
 
+  void addRegVR128RCOperands(MCInst &Inst, unsigned N) const {
+    assert(N == 1 && "Invalid number of operands!");
+    Inst.addOperand(MCOperand::createReg(V128Regs[getRegNum()]));
+  }
+
   void addRegVSRCOperands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
     Inst.addOperand(MCOperand::createReg(VSRegs[getVSReg()]));
@@ -1318,8 +1323,11 @@ bool PPCAsmParser::MatchRegisterName(MCRegister &RegNo, int64_t &IntVal) {
              !Name.substr(2).getAsInteger(10, IntVal) && IntVal < 64) {
     RegNo = VSRegs[IntVal];
   } else if (Name.starts_with_insensitive("v") &&
-             !Name.substr(1).getAsInteger(10, IntVal) && IntVal < 32) {
-    RegNo = VRegs[IntVal];
+   !Name.substr(1).getAsInteger(10, IntVal)) {
+      if(IntVal < 32)
+        RegNo = VRegs[IntVal];
+      else if (IntVal < 127)
+        RegNo = V128Regs[IntVal];
   } else if (Name.starts_with_insensitive("cr") &&
              !Name.substr(2).getAsInteger(10, IntVal) && IntVal < 8) {
     RegNo = CRRegs[IntVal];

@@ -2917,9 +2917,7 @@ class IntegerCompareEliminator {
 public:
   IntegerCompareEliminator(SelectionDAG *DAG,
                            PPCDAGToDAGISel *Sel) : CurDAG(DAG), S(Sel) {
-    assert(CurDAG->getTargetLoweringInfo()
-           .getPointerTy(CurDAG->getDataLayout()).getSizeInBits() == 64 &&
-           "Only expecting to use this on 64 bit targets.");
+    assert(CurDAG->getSubtarget().getTargetTriple().isPPC64() && "Only expecting to use this on 64 bit targets.");
   }
   SDNode *Select(SDNode *N) {
     if (CmpInGPR == ICGPR_None)
@@ -5927,7 +5925,7 @@ void PPCDAGToDAGISel::Select(SDNode *N) {
              N->getValueType(0) == MVT::v2i64)
       SelectCCOp = PPC::SELECT_CC_VSRC;
     else
-      SelectCCOp = PPC::SELECT_CC_VRRC;
+      SelectCCOp = Subtarget->isTargetXbox360() ? PPC::SELECT_CC_VR128RC : PPC::SELECT_CC_VRRC;
 
     SDValue Ops[] = { CCReg, N->getOperand(2), N->getOperand(3),
                         getI32Imm(BROpc, dl) };
@@ -6794,6 +6792,7 @@ void PPCDAGToDAGISel::PeepholeCROps() {
       case PPC::SELECT_SPE:
       case PPC::SELECT_SPE4:
       case PPC::SELECT_VRRC:
+      case PPC::SELECT_VR128RC:
       case PPC::SELECT_VSFRC:
       case PPC::SELECT_VSSRC:
       case PPC::SELECT_VSRC: {
@@ -7113,6 +7112,7 @@ void PPCDAGToDAGISel::PeepholeCROps() {
       case PPC::SELECT_SPE:
       case PPC::SELECT_SPE4:
       case PPC::SELECT_VRRC:
+      case PPC::SELECT_VR128RC:
       case PPC::SELECT_VSFRC:
       case PPC::SELECT_VSSRC:
       case PPC::SELECT_VSRC:

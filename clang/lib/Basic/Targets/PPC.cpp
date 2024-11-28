@@ -53,7 +53,7 @@ bool PPCTargetInfo::handleTargetFeatures(std::vector<std::string> &Features,
     } else if (Feature == "+htm") {
       HasHTM = true;
     } else if (Feature == "+float128") {
-      HasFloat128 = !getTriple().isOSAIX();
+      HasFloat128 = !(getTriple().isOSAIX() || getTriple().isXbox360());
     } else if (Feature == "+power9-vector") {
       HasP9Vector = true;
     } else if (Feature == "+power10-vector") {
@@ -279,6 +279,11 @@ static void defineXLCompatMacros(MacroBuilder &Builder) {
 /// #defines that are not tied to a specific subtarget.
 void PPCTargetInfo::getTargetDefines(const LangOptions &Opts,
                                      MacroBuilder &Builder) const {
+  if (getTriple().isOSXbox360()) {
+    Builder.defineMacro("_M_PPC");
+    Builder.defineMacro("_M_PPCBE");
+    return;
+  }
 
   // We define the XLC compatibility macros only on AIX and Linux since XLC
   // was never available on any other platforms.
@@ -304,13 +309,6 @@ void PPCTargetInfo::getTargetDefines(const LangOptions &Opts,
     // Define __PPC and __powerpc for AIX XL C/C++ compatibility
     Builder.defineMacro("__PPC");
     Builder.defineMacro("__powerpc");
-  } else if (getTriple().isOSXbox360()) {
-    Builder.defineMacro("_PPC_");
-    Builder.defineMacro("_M_PPC");
-    Builder.defineMacro("_XBOX");
-    Builder.defineMacro("_SIZE_T_DEFINED");
-    Builder.defineMacro("XBOX_VER", "200");
-
   }
 
   // Target properties.
@@ -519,6 +517,10 @@ static bool ppcUserFeaturesCheck(DiagnosticsEngine &Diags,
 bool PPCTargetInfo::initFeatureMap(
     llvm::StringMap<bool> &Features, DiagnosticsEngine &Diags, StringRef CPU,
     const std::vector<std::string> &FeaturesVec) const {
+  const bool IsXbox360 = llvm::StringSwitch<bool>(CPU)
+                            .Case("xenon", true)
+                            .Default(false);
+
   Features["altivec"] = llvm::StringSwitch<bool>(CPU)
                             .Case("7400", true)
                             .Case("g4", true)
@@ -532,7 +534,7 @@ bool PPCTargetInfo::initFeatureMap(
                             .Case("pwr9", true)
                             .Case("ppc64", true)
                             .Case("ppc64le", true)
-                            .Default(false);
+                            .Default(IsXbox360);
 
   Features["power9-vector"] = (CPU == "pwr9");
   Features["crypto"] = llvm::StringSwitch<bool>(CPU)
@@ -884,7 +886,7 @@ static constexpr llvm::StringLiteral ValidCPUNames[] = {
     {"power6x"},     {"pwr6x"},   {"power7"}, {"pwr7"},      {"power8"},
     {"pwr8"},        {"power9"},  {"pwr9"},   {"power10"},   {"pwr10"},
     {"powerpc"},     {"ppc"},     {"ppc32"},  {"powerpc64"}, {"ppc64"},
-    {"powerpc64le"}, {"ppc64le"}, {"future"}};
+    {"powerpc64le"}, {"ppc64le"}, {"future"}, {"xenon"}};
 
 bool PPCTargetInfo::isValidCPUName(StringRef Name) const {
   return llvm::is_contained(ValidCPUNames, Name);

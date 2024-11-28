@@ -447,11 +447,13 @@ bool PPCTTIImpl::enableInterleavedAccessVectorization() {
 
 unsigned PPCTTIImpl::getNumberOfRegisters(unsigned ClassID) const {
   assert(ClassID == GPRRC || ClassID == FPRRC ||
-         ClassID == VRRC || ClassID == VSXRC);
+         ClassID == VRRC || ClassID == VR128RC || ClassID == VSXRC);
   if (ST->hasVSX()) {
     assert(ClassID == GPRRC || ClassID == VSXRC || ClassID == VRRC);
     return ClassID == VSXRC ? 64 : 32;
   }
+  if (ClassID == VR128RC)
+    return 128;
   assert(ClassID == GPRRC || ClassID == FPRRC || ClassID == VRRC);
   return 32;
 }
@@ -464,7 +466,7 @@ unsigned PPCTTIImpl::getRegisterClassForType(bool Vector, Type *Ty) const {
     return ST->hasVSX() ? VSXRC : FPRRC;
   else if (Ty && (Ty->getScalarType()->isFP128Ty() ||
                   Ty->getScalarType()->isPPC_FP128Ty()))
-    return VRRC;
+    return getST()->isTargetXbox360() ? VR128RC : VRRC;
   else if (Ty && Ty->getScalarType()->isHalfTy())
     return VSXRC;
   else

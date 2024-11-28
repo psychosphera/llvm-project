@@ -859,7 +859,8 @@ void PPCAsmPrinter::emitInstruction(const MachineInstr *MI) {
               PPC::VFRCRegClass.contains(Reg) ||
               PPC::VRRCRegClass.contains(Reg) ||
               PPC::VSFRCRegClass.contains(Reg) ||
-              PPC::VSSRCRegClass.contains(Reg)
+              PPC::VSSRCRegClass.contains(Reg) ||
+              PPC::VR128RCRegClass.contains(Reg)
               )
             llvm_unreachable("SPE targets cannot have FPRegs!");
         } else {

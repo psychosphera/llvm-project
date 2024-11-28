@@ -91,7 +91,7 @@ public:
   bool enableInterleavedAccessVectorization();
 
   enum PPCRegisterClass {
-    GPRRC, FPRRC, VRRC, VSXRC
+    GPRRC, FPRRC, VRRC, VR128RC, VSXRC
   };
   unsigned getNumberOfRegisters(unsigned ClassID) const;
   unsigned getRegisterClassForType(bool Vector, Type *Ty = nullptr) const;

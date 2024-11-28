@@ -192,6 +192,74 @@ const PPCFrameLowering::SpillSlot *PPCFrameLowering::getCalleeSavedSpillSlots(
       {PPC::V21, -176},  \
       {PPC::V20, -192}
 
+// Vector register save area offsets.
+#define CALLEE_SAVED_VRS128 \
+      {PPC::V127, -16},   \
+      {PPC::V126, -32},   \
+      {PPC::V125, -48},   \
+      {PPC::V124, -64},   \
+      {PPC::V123, -80},   \
+      {PPC::V122, -96},   \
+      {PPC::V121, -112},  \
+      {PPC::V120, -128},  \
+      {PPC::V119, -144},  \
+      {PPC::V118, -160},  \
+      {PPC::V117, -176},  \
+      {PPC::V116, -192},  \
+      {PPC::V121, -208},  \
+      {PPC::V114, -224},  \
+      {PPC::V113, -240},  \
+      {PPC::V112, -256},  \
+      {PPC::V111, -278},  \
+      {PPC::V110, -288},  \
+      {PPC::V109, -304},  \
+      {PPC::V108, -320},  \
+      {PPC::V107, -336},  \
+      {PPC::V106, -352},  \
+      {PPC::V101, -368},  \
+      {PPC::V104, -384},  \
+      {PPC::V103, -400},  \
+      {PPC::V102, -416},  \
+      {PPC::V101, -432},  \
+      {PPC::V100, -448},  \
+      {PPC::V99,  -464},  \
+      {PPC::V98,  -480},  \
+      {PPC::V97,  -496},  \
+      {PPC::V96,  -512},  \
+      {PPC::V95,  -528},  \
+      {PPC::V94,  -544},  \
+      {PPC::V93,  -560},  \
+      {PPC::V92,  -576},  \
+      {PPC::V91,  -592},  \
+      {PPC::V90,  -608},  \
+      {PPC::V89,  -624},  \
+      {PPC::V88,  -640},  \
+      {PPC::V87,  -656},  \
+      {PPC::V86,  -672},  \
+      {PPC::V85,  -688},  \
+      {PPC::V84,  -704},  \
+      {PPC::V83,  -720},  \
+      {PPC::V82,  -736},  \
+      {PPC::V81,  -752},  \
+      {PPC::V80,  -768},  \
+      {PPC::V79,  -784},  \
+      {PPC::V78,  -800},  \
+      {PPC::V77,  -816},  \
+      {PPC::V76,  -832},  \
+      {PPC::V75,  -848},  \
+      {PPC::V74,  -864},  \
+      {PPC::V73,  -880},  \
+      {PPC::V72,  -896},  \
+      {PPC::V71,  -912},  \
+      {PPC::V70,  -928},  \
+      {PPC::V69,  -944},  \
+      {PPC::V68,  -960},  \
+      {PPC::V67,  -976},  \
+      {PPC::V66,  -992},  \
+      {PPC::V65,  -1008}, \
+      {PPC::V64,  -1024} 
+      
+
   // Note that the offsets here overlap, but this is fixed up in
   // processFunctionBeforeFrameFinalized.
 
@@ -248,6 +316,10 @@ const PPCFrameLowering::SpillSlot *PPCFrameLowering::getCalleeSavedSpillSlots(
   static const SpillSlot AIXOffsets64[] = {
       CALLEE_SAVED_FPRS, CALLEE_SAVED_GPRS64, CALLEE_SAVED_VRS};
 
+  // FIXME: probably need to save LR/FPCSR/CTR/XER here
+  static const SpillSlot Xbox360Offsets[] = {
+    CALLEE_SAVED_FPRS, CALLEE_SAVED_GPRS64, CALLEE_SAVED_VRS128};
+
   if (Subtarget.is64BitELFABI()) {
     NumEntries = std::size(ELFOffsets64);
     return ELFOffsets64;
@@ -256,6 +328,11 @@ const PPCFrameLowering::SpillSlot *PPCFrameLowering::getCalleeSavedSpillSlots(
   if (Subtarget.is32BitELFABI()) {
     NumEntries = std::size(ELFOffsets32);
     return ELFOffsets32;
+  }
+
+  if (Subtarget.isTargetXbox360()) {
+    NumEntries = std::size(Xbox360Offsets);
+    return Xbox360Offsets;
   }
 
   assert(Subtarget.isAIXABI() && "Unexpected ABI.");
@@ -2146,6 +2223,7 @@ void PPCFrameLowering::processFunctionBeforeFrameFinalized(MachineFunction &MF,
                PPC::CRRCRegClass.contains(Reg)) {
       ; // do nothing, as we already know whether CRs are spilled
     } else if (PPC::VRRCRegClass.contains(Reg) ||
+               PPC::VR128RCRegClass.contains(Reg) ||
                PPC::SPERCRegClass.contains(Reg)) {
       // Altivec and SPE are mutually exclusive, but have the same stack
       // alignment requirements, so overload the save area for both cases.
@@ -2790,7 +2868,7 @@ void PPCFrameLowering::updateCalleeSaves(const MachineFunction &MF,
               PPC::F8RCRegClass.contains(Cand)) &&
              Cand < LowestFPR)
       LowestFPR = Cand;
-    else if (PPC::VRRCRegClass.contains(Cand) && Cand < LowestVR)
+    else if ((PPC::VRRCRegClass.contains(Cand) || PPC::VR128RCRegClass.contains(Cand)) && Cand < LowestVR)
       LowestVR = Cand;
   }
 
@@ -2801,7 +2879,8 @@ void PPCFrameLowering::updateCalleeSaves(const MachineFunction &MF,
         ((PPC::F4RCRegClass.contains(Cand) ||
           PPC::F8RCRegClass.contains(Cand)) &&
          Cand > LowestFPR) ||
-        (PPC::VRRCRegClass.contains(Cand) && Cand > LowestVR))
+        (PPC::VRRCRegClass.contains(Cand) && Cand > LowestVR) ||
+        (PPC::VR128RCRegClass.contains(Cand) && Cand > LowestVR))
       SavedRegs.set(Cand);
   }
 }

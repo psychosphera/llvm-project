@@ -945,6 +945,11 @@ PPCTargetLowering::PPCTargetLowering(const PPCTargetMachine &TM,
     addRegisterClass(MVT::v8i16, &PPC::VRRCRegClass);
     addRegisterClass(MVT::v16i8, &PPC::VRRCRegClass);
 
+    addRegisterClass(MVT::v4f32, &PPC::VR128RCRegClass);
+    addRegisterClass(MVT::v4i32, &PPC::VR128RCRegClass);
+    addRegisterClass(MVT::v8i16, &PPC::VR128RCRegClass);
+    addRegisterClass(MVT::v16i8, &PPC::VR128RCRegClass);
+
     setOperationAction(ISD::MUL, MVT::v4f32, Legal);
     setOperationAction(ISD::FMA, MVT::v4f32, Legal);
 
@@ -1175,6 +1180,7 @@ PPCTargetLowering::PPCTargetLowering(const PPCTargetMachine &TM,
 
       addRegisterClass(MVT::v2i64, &PPC::VSRCRegClass);
       addRegisterClass(MVT::f128, &PPC::VRRCRegClass);
+      addRegisterClass(MVT::f128, &PPC::VR128RCRegClass);
 
       for (MVT FPT : MVT::fp_valuetypes())
         setLoadExtAction(ISD::EXTLOAD, MVT::f128, FPT, Expand);
@@ -7129,11 +7135,12 @@ static bool CC_Xbox360(unsigned ValNo, MVT ValVT, MVT LocVT,
                                      PPC::X7, PPC::X8, PPC::X9, PPC::X10};
 
   static const MCPhysReg VR[] = {// Vector registers.
-                                 PPC::V2,  PPC::V3,  PPC::V4,  PPC::V5,
+                                 PPC::V1, PPC::V2,  PPC::V3,  PPC::V4,  PPC::V5,
                                  PPC::V6,  PPC::V7,  PPC::V8,  PPC::V9,
                                  PPC::V10, PPC::V11, PPC::V12, PPC::V13};
 
   if (ArgFlags.isByVal()) {
+    dbgs() << "ArgFlags.getNonZeroByValAlign()=" << ArgFlags.getNonZeroByValAlign().value() << ", RegAlign=" << RegAlign.value() << "\n";
     if (ArgFlags.getNonZeroByValAlign() > RegAlign)
       report_fatal_error("Pass-by-value arguments with alignment greater than "
                          "register width are not supported.");
@@ -7308,7 +7315,8 @@ static bool CC_Xbox360(unsigned ValNo, MVT ValVT, MVT LocVT,
 static const TargetRegisterClass *getRegClassForSVT(MVT::SimpleValueType SVT,
                                                     bool IsPPC64,
                                                     bool HasP8Vector,
-                                                    bool HasVSX) {
+                                                    bool HasVSX,
+                                                    bool HasVMX128) {
   assert((IsPPC64 || SVT != MVT::i64) &&
          "i64 should have been split for 32-bit codegen.");
 
@@ -7330,7 +7338,7 @@ static const TargetRegisterClass *getRegClassForSVT(MVT::SimpleValueType SVT,
   case MVT::v2i64:
   case MVT::v2f64:
   case MVT::v1i128:
-    return &PPC::VRRCRegClass;
+    return HasVMX128 ?  &PPC::VR128RCRegClass : &PPC::VRRCRegClass;
   }
 }
 
@@ -7806,7 +7814,7 @@ SDValue PPCTargetLowering::LowerFormalArguments_Xbox360(
     //     MVT::SimpleValueType SVT = VA.getLocVT().SimpleTy;
     //     MF.addLiveIn(VA.getLocReg(),
     //                  getRegClassForSVT(SVT, true, Subtarget.hasP8Vector(),
-    //                                    Subtarget.hasVSX()));
+    //                                    Subtarget.hasVSX()), true);
     //   };
 
     //   HandleMemLoc();
@@ -7946,7 +7954,7 @@ SDValue PPCTargetLowering::LowerFormalArguments_Xbox360(
       Register VReg =
           MF.addLiveIn(VA.getLocReg(),
                        getRegClassForSVT(SVT, true, Subtarget.hasP8Vector(),
-                                         Subtarget.hasVSX()));
+                                         Subtarget.hasVSX(), true));
       SDValue ArgValue = DAG.getCopyFromReg(Chain, dl, VReg, LocVT);
       if (ValVT.isScalarInteger() &&
           (ValVT.getFixedSizeInBits() < LocVT.getFixedSizeInBits())) {
@@ -8144,7 +8152,7 @@ SDValue PPCTargetLowering::LowerFormalArguments_AIX(
         MVT::SimpleValueType SVT = VA.getLocVT().SimpleTy;
         MF.addLiveIn(VA.getLocReg(),
                      getRegClassForSVT(SVT, IsPPC64, Subtarget.hasP8Vector(),
-                                       Subtarget.hasVSX()));
+                                       Subtarget.hasVSX(), false));
       };
 
       HandleMemLoc();
@@ -8286,7 +8294,7 @@ SDValue PPCTargetLowering::LowerFormalArguments_AIX(
       Register VReg =
           MF.addLiveIn(VA.getLocReg(),
                        getRegClassForSVT(SVT, IsPPC64, Subtarget.hasP8Vector(),
-                                         Subtarget.hasVSX()));
+                                         Subtarget.hasVSX(), false));
       SDValue ArgValue = DAG.getCopyFromReg(Chain, dl, VReg, LocVT);
       if (ValVT.isScalarInteger() &&
           (ValVT.getFixedSizeInBits() < LocVT.getFixedSizeInBits())) {
@@ -13732,6 +13740,7 @@ static bool IsSelectCC(MachineInstr &MI) {
   case PPC::SELECT_CC_F8:
   case PPC::SELECT_CC_F16:
   case PPC::SELECT_CC_VRRC:
+  case PPC::SELECT_CC_VR128RC:
   case PPC::SELECT_CC_VSFRC:
   case PPC::SELECT_CC_VSSRC:
   case PPC::SELECT_CC_VSRC:

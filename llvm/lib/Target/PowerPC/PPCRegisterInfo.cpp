@@ -1836,7 +1836,7 @@ Register PPCRegisterInfo::getBaseRegister(const MachineFunction &MF) const {
   if (!hasBasePointer(MF))
     return getFrameRegister(MF);
 
-  if (TM.isPPC64())
+  if (TM.isPPC64() && !TM.getTargetTriple().isXbox360())
     return PPC::X30;
 
   if (Subtarget.isSVR4ABI() && TM.isPositionIndependent())
@@ -1846,7 +1846,7 @@ Register PPCRegisterInfo::getBaseRegister(const MachineFunction &MF) const {
 }
 
 bool PPCRegisterInfo::hasBasePointer(const MachineFunction &MF) const {
-  if (!EnableBasePointer)
+  if (!EnableBasePointer || MF.getSubtarget().getTargetTriple().isXbox360())
     return false;
   if (AlwaysBasePointer)
     return true;

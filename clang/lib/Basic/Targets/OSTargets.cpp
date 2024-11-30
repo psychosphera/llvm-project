@@ -273,7 +273,7 @@ void addWindowsDefines(const llvm::Triple &Triple, const LangOptions &Opts,
     // FIXME: VMX128 is creating errors in codegen. Emit _XM_NO_INTRINSICS_ 
     // instead until codegen is fixed.
     //Builder.defineMacro("__VMX128_SUPPORTED");
-    Builder.defineMacro("_XM_NO_INTRINSICS_");
+    //Builder.defineMacro("_XM_NO_INTRINSICS_");
      
   }
 }

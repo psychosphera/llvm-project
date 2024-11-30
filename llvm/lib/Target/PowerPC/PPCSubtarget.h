@@ -284,7 +284,7 @@ public:
   MCRegister getTOCPointerRegister() const {
     assert((is64BitELFABI() || isAIXABI()) &&
            "Should only be called when the target is a TOC based ABI.");
-    return IsPPC64 && !isTargetXbox360() ? PPC::X2 : PPC::R2;
+    return IsPPC64 ? PPC::X2 : PPC::R2;
   }
 
   MCRegister getThreadPointerRegister() const {
@@ -294,7 +294,7 @@ public:
   }
 
   MCRegister getStackPointerRegister() const {
-    return IsPPC64 ? PPC::X1 : PPC::R1;
+    return IsPPC64 && TargetTriple.isXbox360() ? PPC::X1 : PPC::R1;
   }
 
   bool isXRaySupported() const override { return IsPPC64 && IsLittleEndian; }

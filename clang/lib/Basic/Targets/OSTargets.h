@@ -817,7 +817,7 @@ public:
     this->IntMaxType = TargetInfo::SignedLongLong;
     this->Int64Type = TargetInfo::SignedLongLong;
     this->SizeType = TargetInfo::UnsignedInt;
-    this->resetDataLayout("E-m:w-p:32:32-Fi32-i64:64-n32:64");
+    this->resetDataLayout("E-m:w-S128-p:32:32-Fi32-i64:64-n32:64-v128:128");
   }
 };
 

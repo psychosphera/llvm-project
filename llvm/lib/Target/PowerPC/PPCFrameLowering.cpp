@@ -44,7 +44,7 @@ static unsigned computeReturnSaveOffset(const PPCSubtarget &STI) {
   if (STI.isAIXABI())
     return STI.isPPC64() ? 16 : 8;
   if (STI.isTargetXbox360()) 
-    return 16;
+    return 8;
   // SVR4 ABI:
   return STI.isPPC64() ? 16 : 4;
 }
@@ -383,6 +383,11 @@ PPCFrameLowering::determineFrameLayoutAndUpdate(MachineFunction &MF,
   unsigned NewMaxCallFrameSize = 0;
   uint64_t FrameSize = determineFrameLayout(MF, UseEstimate,
                                             &NewMaxCallFrameSize);
+  // Xbox 360 has four reserved words in its stack frame that aren't accounted 
+  // for in determineFrameLayout().
+  if (MF.getSubtarget().getTargetTriple().isXbox360())
+    FrameSize += 16;
+
   MF.getFrameInfo().setStackSize(FrameSize);
   MF.getFrameInfo().setMaxCallFrameSize(NewMaxCallFrameSize);
   return FrameSize;
@@ -746,31 +751,31 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
 
   Register SPReg       = Subtarget.getStackPointerRegister();
   Register BPReg       = RegInfo->getBaseRegister(MF);
-  Register FPReg       = isPPC64 ? PPC::X31 : PPC::R31;
-  Register LRReg       = isPPC64 ? PPC::LR8 : PPC::LR;
+  Register FPReg       = isPPC64 && !isXbox360 ? PPC::X31 : PPC::R31;
+  Register LRReg       = isPPC64 && !isXbox360 ? PPC::LR8 : PPC::LR;
   Register ScratchReg;
   Register TempReg     = isPPC64 ? PPC::X12 : PPC::R12; // another scratch reg
-  //  ...(R12/X12 is volatile in both Darwin & SVR4, & can't be a function arg.)
-  const MCInstrDesc& MFLRInst = TII.get(isPPC64 ? PPC::MFLR8
+  //  ...(R12/X12 is volatile in Darwin, SVR4, and Xbox 360, & can't be a function arg.)
+  const MCInstrDesc& MFLRInst = TII.get(isPPC64 && !isXbox360 ? PPC::MFLR8
                                                 : PPC::MFLR );
-  const MCInstrDesc& StoreInst = TII.get(isPPC64 ? PPC::STD
+  const MCInstrDesc& StoreInst = TII.get(isPPC64 && !isXbox360 ? PPC::STD
                                                  : PPC::STW );
-  const MCInstrDesc& StoreUpdtInst = TII.get(isPPC64 ? PPC::STDU
+  const MCInstrDesc& StoreUpdtInst = TII.get(isPPC64 && !isXbox360 ? PPC::STDU
                                                      : PPC::STWU );
-  const MCInstrDesc& StoreUpdtIdxInst = TII.get(isPPC64 ? PPC::STDUX
+  const MCInstrDesc& StoreUpdtIdxInst = TII.get(isPPC64 && !isXbox360 ? PPC::STDUX
                                                         : PPC::STWUX);
-  const MCInstrDesc& OrInst = TII.get(isPPC64 ? PPC::OR8
+  const MCInstrDesc& OrInst = TII.get(isPPC64 && !isXbox360 ? PPC::OR8
                                               : PPC::OR );
-  const MCInstrDesc& SubtractCarryingInst = TII.get(isPPC64 ? PPC::SUBFC8
+  const MCInstrDesc& SubtractCarryingInst = TII.get(isPPC64 && !isXbox360 ? PPC::SUBFC8
                                                             : PPC::SUBFC);
-  const MCInstrDesc& SubtractImmCarryingInst = TII.get(isPPC64 ? PPC::SUBFIC8
+  const MCInstrDesc& SubtractImmCarryingInst = TII.get(isPPC64 && !isXbox360 ? PPC::SUBFIC8
                                                                : PPC::SUBFIC);
-  const MCInstrDesc &MoveFromCondRegInst = TII.get(isPPC64 ? PPC::MFCR8
+  const MCInstrDesc &MoveFromCondRegInst = TII.get(isPPC64 && !isXbox360 ? PPC::MFCR8
                                                            : PPC::MFCR);
-  const MCInstrDesc &StoreWordInst = TII.get(isPPC64 ? PPC::STW8 : PPC::STW);
+  const MCInstrDesc &StoreWordInst = TII.get(isPPC64 && !isXbox360 ? PPC::STW8 : PPC::STW);
   const MCInstrDesc &HashST =
-      TII.get(isPPC64 ? (HasPrivileged ? PPC::HASHSTP8 : PPC::HASHST8)
-                      : (HasPrivileged ? PPC::HASHSTP : PPC::HASHST));
+      TII.get(isPPC64 && !isXbox360 ? (HasPrivileged ? PPC::HASHSTP8 : PPC::HASHST8)
+                                    : (HasPrivileged ? PPC::HASHSTP : PPC::HASHST));
 
   // Regarding this assert: Even though LR is saved in the caller's frame (i.e.,
   // LROffset is positive), that slot is callee-owned. Because PPC32 SVR4 has no
@@ -781,13 +786,16 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
 
   // Using the same bool variable as below to suppress compiler warnings.
   bool SingleScratchReg = findScratchRegister(
-      &MBB, false, twoUniqueScratchRegsRequired(&MBB), &ScratchReg, &TempReg);
+      &MBB, false, twoUniqueScratchRegsRequired(&MBB), isXbox360 ? &TempReg : &ScratchReg, isXbox360 ? &ScratchReg : &TempReg);
   assert(SingleScratchReg &&
          "Required number of registers not available in this block");
-
+  
   SingleScratchReg = ScratchReg == TempReg;
+  dbgs() << "SingleScratchReg=" << SingleScratchReg << " (ScratchReg=" << ScratchReg << ", TempReg=" << TempReg << ")\n";
 
   int64_t LROffset = getReturnSaveOffset();
+  if(isXbox360)
+    LROffset = -LROffset;
 
   int64_t FPOffset = 0;
   if (HasFP) {
@@ -936,6 +944,7 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
   // is required the register holding the LR should not be killed as it will be
   // used by the hash store instruction.
   auto SaveLR = [&](int64_t Offset) {
+    dbgs() << "SaveLR: Offset=" << Offset << "\n";
     assert(MustSaveLR && "LR is not required to be saved!");
     BuildMI(MBB, StackUpdateLoc, dl, StoreInst)
         .addReg(ScratchReg, getKillRegState(!HasROPProtect))
@@ -962,7 +971,8 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
     }
   };
 
-  if (MustSaveLR && HasFastMFLR)
+  dbgs() << "HasFastMFLR=" << HasFastMFLR << "\n";
+  if (MustSaveLR && (HasFastMFLR || isXbox360))
       SaveLR(LROffset);
 
   if (MustSaveCR &&
@@ -1003,8 +1013,9 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
   // If the offset can not be encoded into the store instruction, we also have
   // to save LR here.
   if (MustSaveLR && !HasFastMFLR &&
-      (HasSTUX || !isInt<16>(FrameSize + LROffset)))
+      (HasSTUX || !isInt<16>(FrameSize + LROffset))) {
     SaveLR(LROffset);
+  }
 
   // If FrameSize <= TLI.getStackProbeSize(MF), as POWER ABI requires backchain
   // pointer is always stored at SP, we will get a free probe due to an essential
@@ -1029,6 +1040,7 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
   } else {
     // This condition must be kept in sync with canUseAsPrologue.
     if (HasBP && MaxAlign > 1) {
+      dbgs () << "1043\n";
       if (isPPC64)
         BuildMI(MBB, MBBI, dl, TII.get(PPC::RLDICL), ScratchReg)
             .addReg(SPReg)
@@ -1195,8 +1207,10 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
   }
 
   // Save the LR now.
-  if (!HasSTUX && MustSaveLR && !HasFastMFLR && isInt<16>(FrameSize + LROffset))
+  if (!HasSTUX && MustSaveLR && !HasFastMFLR && isInt<16>(FrameSize + LROffset) && !isXbox360) {
+    dbgs() << "1204\n";
     SaveLR(LROffset + FrameSize);
+  }
 
   // Add Call Frame Information for the instructions we generated above.
   if (needsCFI) {
@@ -1646,11 +1660,12 @@ void PPCFrameLowering::emitEpilogue(MachineFunction &MF,
   // Get alignment info so we know how to restore the SP.
   const MachineFrameInfo &MFI = MF.getFrameInfo();
 
-  // Get the number of bytes allocated from the FrameInfo.
-  int64_t FrameSize = MFI.getStackSize();
-
   // Get processor type.
   bool isPPC64 = Subtarget.isPPC64();
+  bool isXbox360 = Subtarget.isTargetXbox360();
+
+  // Get the number of bytes allocated from the FrameInfo.
+  int64_t FrameSize = MFI.getStackSize();
 
   // Check if the link register (LR) has been saved.
   PPCFunctionInfo *FI = MF.getInfo<PPCFunctionInfo>();
@@ -1664,39 +1679,41 @@ void PPCFrameLowering::emitEpilogue(MachineFunction &MF,
   bool HasROPProtect = Subtarget.hasROPProtect();
   bool HasPrivileged = Subtarget.hasPrivileged();
 
-  Register SPReg      = isPPC64 ? PPC::X1  : PPC::R1;
+  Register SPReg      = isPPC64 && !isXbox360 ? PPC::X1  : PPC::R1;
   Register BPReg = RegInfo->getBaseRegister(MF);
-  Register FPReg      = isPPC64 ? PPC::X31 : PPC::R31;
+  Register FPReg      = isPPC64 && !isXbox360 ? PPC::X31 : PPC::R31;
   Register ScratchReg;
-  Register TempReg     = isPPC64 ? PPC::X12 : PPC::R12; // another scratch reg
-  const MCInstrDesc& MTLRInst = TII.get( isPPC64 ? PPC::MTLR8
+  Register TempReg     = isPPC64 && !isXbox360 ? PPC::X12 : PPC::R12; // another scratch reg
+  const MCInstrDesc& MTLRInst = TII.get( isPPC64 && !isXbox360 ? PPC::MTLR8
                                                  : PPC::MTLR );
-  const MCInstrDesc& LoadInst = TII.get( isPPC64 ? PPC::LD
+  const MCInstrDesc& LoadInst = TII.get( isPPC64 && !isXbox360 ? PPC::LD
                                                  : PPC::LWZ );
-  const MCInstrDesc& LoadImmShiftedInst = TII.get( isPPC64 ? PPC::LIS8
+  const MCInstrDesc& LoadImmShiftedInst = TII.get( isPPC64 && !isXbox360 ? PPC::LIS8
                                                            : PPC::LIS );
-  const MCInstrDesc& OrInst = TII.get(isPPC64 ? PPC::OR8
+  const MCInstrDesc& OrInst = TII.get(isPPC64 && !isXbox360 ? PPC::OR8
                                               : PPC::OR );
-  const MCInstrDesc& OrImmInst = TII.get( isPPC64 ? PPC::ORI8
+  const MCInstrDesc& OrImmInst = TII.get( isPPC64 && !isXbox360 ? PPC::ORI8
                                                   : PPC::ORI );
-  const MCInstrDesc& AddImmInst = TII.get( isPPC64 ? PPC::ADDI8
+  const MCInstrDesc& AddImmInst = TII.get( isPPC64 && !isXbox360 ? PPC::ADDI8
                                                    : PPC::ADDI );
-  const MCInstrDesc& AddInst = TII.get( isPPC64 ? PPC::ADD8
+  const MCInstrDesc& AddInst = TII.get( isPPC64 && !isXbox360 ? PPC::ADD8
                                                 : PPC::ADD4 );
-  const MCInstrDesc& LoadWordInst = TII.get( isPPC64 ? PPC::LWZ8
+  const MCInstrDesc& LoadWordInst = TII.get( isPPC64 && !isXbox360 ? PPC::LWZ8
                                                      : PPC::LWZ);
-  const MCInstrDesc& MoveToCRInst = TII.get( isPPC64 ? PPC::MTOCRF8
+  const MCInstrDesc& MoveToCRInst = TII.get( isPPC64 && !isXbox360 ? PPC::MTOCRF8
                                                      : PPC::MTOCRF);
   const MCInstrDesc &HashChk =
-      TII.get(isPPC64 ? (HasPrivileged ? PPC::HASHCHKP8 : PPC::HASHCHK8)
+      TII.get(isPPC64 && !isXbox360 ? (HasPrivileged ? PPC::HASHCHKP8 : PPC::HASHCHK8)
                       : (HasPrivileged ? PPC::HASHCHKP : PPC::HASHCHK));
   int64_t LROffset = getReturnSaveOffset();
+  if (isXbox360)
+    LROffset = -LROffset;
 
   int64_t FPOffset = 0;
 
   // Using the same bool variable as below to suppress compiler warnings.
-  bool SingleScratchReg = findScratchRegister(&MBB, true, false, &ScratchReg,
-                                              &TempReg);
+  bool SingleScratchReg = findScratchRegister(&MBB, true, false, isXbox360 ? &TempReg : &ScratchReg,
+                                              isXbox360 ? &ScratchReg : &TempReg);
   assert(SingleScratchReg &&
          "Could not find an available scratch register");
 

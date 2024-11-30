@@ -4260,7 +4260,7 @@ SDValue PPCTargetLowering::LowerFormalArguments_32SVR4(
     SelectionDAG &DAG, SmallVectorImpl<SDValue> &InVals) const {
 
   // 32-bit SVR4 ABI Stack Frame Layout:
-  //              +-----------------------------------+
+  // High Memory  +-----------------------------------+
   //        +-->  |            Back chain             |
   //        |     +-----------------------------------+
   //        |     | Floating-point register save area |
@@ -4282,7 +4282,7 @@ SDValue PPCTargetLowering::LowerFormalArguments_32SVR4(
   //        |     |           LR save word            |
   //        |     +-----------------------------------+
   // SP-->  +---  |            Back chain             |
-  //              +-----------------------------------+
+  // Low Memory   +-----------------------------------+
   //
   // Specifications:
   //   System V Application Binary Interface PowerPC Processor Supplement
@@ -7124,23 +7124,26 @@ static bool CC_Xbox360(unsigned ValNo, MVT ValVT, MVT LocVT,
   const Align RegAlign = Align(8);
   const MVT RegVT = MVT::i64;
 
-  if (ValVT == MVT::f128)
-    report_fatal_error("f128 is unimplemented on Xbox 360.");
+  if (ValVT == MVT::f128 || ValVT == MVT::f80 || ValVT == MVT::i128)
+    report_fatal_error("f128, f80, and i128 are unsupported for Xbox 360.");
+
+  if (ValVT.isVector() && !ValVT.is128BitVector())
+    report_fatal_error("non-128-bit vectors are unsupported for Xbox 360.");
 
   if (ArgFlags.isNest())
-    report_fatal_error("Nest arguments are unimplemented.");
+    report_fatal_error("Nest arguments are unimplemented for Xbox 360.");
 
   static const MCPhysReg GPR[] = {// 64-bit registers.
                                      PPC::X3, PPC::X4, PPC::X5, PPC::X6,
                                      PPC::X7, PPC::X8, PPC::X9, PPC::X10};
 
   static const MCPhysReg VR[] = {// Vector registers.
-                                 PPC::V1, PPC::V2,  PPC::V3,  PPC::V4,  PPC::V5,
+                                 PPC::V1,  PPC::V2,  PPC::V3,  PPC::V4,  PPC::V5,
                                  PPC::V6,  PPC::V7,  PPC::V8,  PPC::V9,
                                  PPC::V10, PPC::V11, PPC::V12, PPC::V13};
 
+  // TODO: support for VMX128
   if (ArgFlags.isByVal()) {
-    dbgs() << "ArgFlags.getNonZeroByValAlign()=" << ArgFlags.getNonZeroByValAlign().value() << ", RegAlign=" << RegAlign.value() << "\n";
     if (ArgFlags.getNonZeroByValAlign() > RegAlign)
       report_fatal_error("Pass-by-value arguments with alignment greater than "
                          "register width are not supported.");

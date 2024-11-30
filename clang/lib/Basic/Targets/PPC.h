@@ -459,7 +459,7 @@ public:
       LongDoubleFormat = &llvm::APFloat::IEEEdouble();
     } else if (Triple.isOSXbox360()) {
       // Xbox 360 only uses 32-bit pointers since the console only has 512MB of memory.
-      DataLayout = "E-m:w-p:32:32-Fi32-i64:64-n32:64";
+      DataLayout = "E-m:w-S128-p:32:32-Fi32-i64:64-n32:64-v128:128";
       LongDoubleWidth = DoubleWidth = LongDoubleAlign = DoubleAlign = 64;
     } else if ((Triple.getArch() == llvm::Triple::ppc64le)) {
       DataLayout = "e-m:e-Fn32-i64:64-n32:64";

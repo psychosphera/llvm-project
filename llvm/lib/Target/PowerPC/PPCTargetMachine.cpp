@@ -162,6 +162,9 @@ static std::string getDataLayoutString(const Triple &T) {
 
   Ret += DataLayout::getManglingComponent(T);
 
+  if (T.getOS() == Triple::Xbox360) 
+    Ret += "-S128";
+
   // PPC32 has 32 bit pointers. The PS3 (OS Lv2) and Xbox 360 are PPC64 machines
   // with 32 bit pointers.
   if (!is64Bit || (T.getOS() == Triple::Lv2 || T.getOS() == Triple::Xbox360))
@@ -189,6 +192,9 @@ static std::string getDataLayoutString(const Triple &T) {
     Ret += "-n32:64";
   else
     Ret += "-n32";
+
+  if(T.isOSXbox360())
+    Ret += "-v128:128";
 
   // Specify the vector alignment explicitly. For v256i1 and v512i1, the
   // calculated alignment would be 256*alignment(i1) and 512*alignment(i1),

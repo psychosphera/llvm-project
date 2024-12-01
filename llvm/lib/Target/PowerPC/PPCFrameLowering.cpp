@@ -732,6 +732,7 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
   // Work out frame sizes.
   uint64_t FrameSize = determineFrameLayoutAndUpdate(MF);
   int64_t NegFrameSize = -FrameSize;
+  dbgs() << "FrameSize=" << FrameSize << "\n";
   if (!isPPC64 && (!isInt<32>(FrameSize) || !isInt<32>(NegFrameSize)))
     llvm_unreachable("Unhandled stack size!");
 
@@ -996,7 +997,6 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
   // If there is a preferred stack alignment, align R1 now
 
   if (HasBP && HasRedZone) {
-    dbgs() << "998\n";
     // Save a copy of r1 as the base pointer.
     BuildMI(MBB, MBBI, dl, OrInst, BPReg)
       .addReg(SPReg)
@@ -1008,6 +1008,7 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
   bool HasSTUX =
       (TLI.hasInlineStackProbe(MF) && FrameSize > TLI.getStackProbeSize(MF)) ||
       (HasBP && MaxAlign > 1) || isLargeFrame;
+  dbgs() << "HasSTUX=" << HasSTUX << "\n";
 
   // If we use STUX to update the stack pointer, we need the two scratch
   // registers TempReg and ScratchReg, we have to save LR here which is stored

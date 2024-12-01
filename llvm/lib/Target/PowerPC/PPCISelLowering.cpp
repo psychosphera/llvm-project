@@ -7432,7 +7432,7 @@ SDValue PPCTargetLowering::LowerCall_Xbox360(
                     *DAG.getContext());
 
   const unsigned LinkageSize = FL->getLinkageSize();
-  const EVT PtrVT = MVT::i32;
+  const EVT PtrVT = MVT::i32; 
   const EVT RegVT = MVT::i64;
   //const unsigned PtrByteSize = 4;
   const unsigned RegByteSize = 8;

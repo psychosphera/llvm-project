@@ -383,10 +383,6 @@ PPCFrameLowering::determineFrameLayoutAndUpdate(MachineFunction &MF,
   unsigned NewMaxCallFrameSize = 0;
   uint64_t FrameSize = determineFrameLayout(MF, UseEstimate,
                                             &NewMaxCallFrameSize);
-  // Xbox 360 has four reserved words in its stack frame that aren't accounted 
-  // for in determineFrameLayout().
-  if (MF.getSubtarget().getTargetTriple().isXbox360())
-    FrameSize += 16;
 
   MF.getFrameInfo().setStackSize(FrameSize);
   MF.getFrameInfo().setMaxCallFrameSize(NewMaxCallFrameSize);
@@ -415,6 +411,8 @@ PPCFrameLowering::determineFrameLayout(const MachineFunction &MF,
 
   unsigned LR = RegInfo->getRARegister();
   bool DisableRedZone = MF.getFunction().hasFnAttribute(Attribute::NoRedZone);
+  dbgs() << "determineFrameLayout: MF.getName()=" << MF.getName() << "\n";
+  
   bool CanUseRedZone = !MFI.hasVarSizedObjects() && // No dynamic alloca.
                        !MFI.adjustsStack() &&       // No calls.
                        !MustSaveLR(MF, LR) &&       // No need to save LR.
@@ -433,6 +431,10 @@ PPCFrameLowering::determineFrameLayout(const MachineFunction &MF,
 
   // Get the maximum call frame size of all the calls.
   unsigned maxCallFrameSize = MFI.getMaxCallFrameSize();
+  // Xbox 360 has two reserved words in its stack frame that aren't accounted
+  // for elsewhere in this function.
+  if(MF.getSubtarget().getTargetTriple().isXbox360())
+    maxCallFrameSize += 8;
 
   // Maximum call frame needs to be at least big enough for linkage area.
   unsigned minCallFrameSize = getLinkageSize();
@@ -971,7 +973,6 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
     }
   };
 
-  dbgs() << "HasFastMFLR=" << HasFastMFLR << "\n";
   if (MustSaveLR && (HasFastMFLR || isXbox360))
       SaveLR(LROffset);
 
@@ -995,6 +996,7 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
   // If there is a preferred stack alignment, align R1 now
 
   if (HasBP && HasRedZone) {
+    dbgs() << "998\n";
     // Save a copy of r1 as the base pointer.
     BuildMI(MBB, MBBI, dl, OrInst, BPReg)
       .addReg(SPReg)
@@ -1040,7 +1042,6 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
   } else {
     // This condition must be kept in sync with canUseAsPrologue.
     if (HasBP && MaxAlign > 1) {
-      dbgs () << "1043\n";
       if (isPPC64)
         BuildMI(MBB, MBBI, dl, TII.get(PPC::RLDICL), ScratchReg)
             .addReg(SPReg)
@@ -1170,6 +1171,7 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
             .addImm(PBPOffset)
             .addReg(ScratchReg);
         if (HasBP) {
+          dbgs() << "1173\n";
           BuildMI(MBB, MBBI, dl, StoreInst)
             .addReg(BPReg)
             .addImm(BPOffset)
@@ -1271,6 +1273,7 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
 
   // If there is a frame pointer, copy R1 into R31
   if (HasFP) {
+    dbgs() << "1275\n";
     BuildMI(MBB, MBBI, dl, OrInst, FPReg)
       .addReg(SPReg)
       .addReg(SPReg);
@@ -1824,6 +1827,7 @@ void PPCFrameLowering::emitEpilogue(MachineFunction &MF,
     // If the function has a base pointer, the stack pointer has been copied
     // to it so we can restore it by copying in the other direction.
     if (HasRedZone && HasBP) {
+      dbgs() << "1829\n";
       BuildMI(MBB, MBBI, dl, OrInst, RBReg).
         addReg(BPReg).
         addReg(BPReg);
@@ -1866,6 +1870,7 @@ void PPCFrameLowering::emitEpilogue(MachineFunction &MF,
       // could happen to be R0. Use FP instead, but make sure to preserve it.
       if (!HasRedZone) {
         // If FP is not saved, copy it to ScratchReg.
+        dbgs() << "1872\n";
         if (!HasFP)
           BuildMI(MBB, MBBI, dl, OrInst, ScratchReg)
             .addReg(FPReg)
@@ -1943,6 +1948,7 @@ void PPCFrameLowering::emitEpilogue(MachineFunction &MF,
   if (RBReg != SPReg || SPAdd != 0) {
     assert(!HasRedZone && "This should not happen with red zone");
     // If SPAdd is 0, generate a copy.
+    dbgs() << "1950\n";
     if (SPAdd == 0)
       BuildMI(MBB, MBBI, dl, OrInst, SPReg)
         .addReg(RBReg)
@@ -1953,6 +1959,7 @@ void PPCFrameLowering::emitEpilogue(MachineFunction &MF,
         .addImm(SPAdd);
 
     assert(RBReg != ScratchReg && "Should be using FP or SP as base register");
+    dbgs() << "1961\n";
     if (RBReg == FPReg)
       BuildMI(MBB, MBBI, dl, OrInst, FPReg)
         .addReg(ScratchReg)

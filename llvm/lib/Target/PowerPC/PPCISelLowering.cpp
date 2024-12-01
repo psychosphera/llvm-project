@@ -614,7 +614,7 @@ PPCTargetLowering::PPCTargetLowering(const PPCTargetMachine &TM,
   // VASTART needs to be custom lowered to use the VarArgsFrameIndex
   setOperationAction(ISD::VASTART           , MVT::Other, Custom);
 
-  if (Subtarget.is64BitELFABI()) {
+  if (Subtarget.is64BitELFABI() || Subtarget.isTargetXbox360()) {
     // VAARG always uses double-word chunks, so promote anything smaller.
     setOperationAction(ISD::VAARG, MVT::i1, Promote);
     AddPromotedToType(ISD::VAARG, MVT::i1, MVT::i64);
@@ -5937,7 +5937,7 @@ PPCTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   SmallVectorImpl<SDValue> &OutVals     = CLI.OutVals;
   SmallVectorImpl<ISD::InputArg> &Ins   = CLI.Ins;
   // for(const auto& In : Ins) {
-  //   LLVM_DEBUG(dbgs() << "LowerCall: In.VT=" << In.VT << ", In.ArgVT=" << In.ArgVT <<"\n");
+  //  LLVM_DEBUG(dbgs() << "LowerCall: In.VT=" << In.VT << ", In.ArgVT=" << In.ArgVT <<"\n");
   // }
   SDValue Chain                         = CLI.Chain;
   SDValue Callee                        = CLI.Callee;
@@ -7124,7 +7124,7 @@ static bool CC_Xbox360(unsigned ValNo, MVT ValVT, MVT LocVT,
   const Align RegAlign = Align(8);
   const MVT RegVT = MVT::i64;
 
-  if (ValVT == MVT::f128 || ValVT == MVT::f80 || ValVT == MVT::i128)
+  if (ValVT == MVT::f128 || ValVT == MVT::f80 || ValVT == MVT::i128) 
     report_fatal_error("f128, f80, and i128 are unsupported for Xbox 360.");
 
   if (ValVT.isVector() && !ValVT.is128BitVector())
@@ -7404,6 +7404,7 @@ SDValue PPCTargetLowering::LowerCall_Xbox360(
     const SmallVectorImpl<ISD::InputArg> &Ins, const SDLoc &dl,
     SelectionDAG &DAG, SmallVectorImpl<SDValue> &InVals,
     const CallBase *CB) const {
+  
   // See PPCTargetLowering::LowerFormalArguments_Xbox360() for a description of the
   // Xbox 360 ABI stack frame layout.
 
@@ -7476,6 +7477,13 @@ SDValue PPCTargetLowering::LowerCall_Xbox360(
       }
   
       auto GetLoad = [&](EVT VT, unsigned LoadOffset) {
+        dbgs() << "LowerCall_Xbox360: GetLoad() VT=" << VT << "\n";
+        if (VT == MVT::i32 || VT == MVT::i64) 
+          return DAG.getLoad(VT, dl, Chain, (LoadOffset != 0)
+                                  ? DAG.getObjectPtrOffset(
+                                        dl, Arg, TypeSize::getFixed(LoadOffset))
+                                  : Arg, MachinePointerInfo());
+                                  
         return DAG.getExtLoad(ISD::ZEXTLOAD, dl, RegVT, Chain,
                               (LoadOffset != 0)
                                   ? DAG.getObjectPtrOffset(
@@ -7483,7 +7491,6 @@ SDValue PPCTargetLowering::LowerCall_Xbox360(
                                   : Arg,
                               MachinePointerInfo(), VT);
       };
-  
       unsigned LoadOffset = 0;
   
       // Initialize registers, which are fully occupied by the by-val argument.

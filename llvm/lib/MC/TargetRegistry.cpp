@@ -14,6 +14,7 @@
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCObjectStreamer.h"
 #include "llvm/MC/MCObjectWriter.h"
+#include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/raw_ostream.h"
 #include <cassert>
 #include <vector>
@@ -34,15 +35,15 @@ MCStreamer *Target::createMCObjectStreamer(
     assert((T.isOSWindows() || T.isOSXbox360() || T.isUEFI()) &&
            "only Windows and UEFI COFF are supported");
     S = COFFStreamerCtorFn(Ctx, std::move(TAB), std::move(OW),
-                           std::move(Emitter), IncrementalLinkerCompatible);
+                           std::move(Emitter));
     break;
   case Triple::MachO:
     if (MachOStreamerCtorFn)
       S = MachOStreamerCtorFn(Ctx, std::move(TAB), std::move(OW),
-                              std::move(Emitter), DWARFMustBeAtTheEnd);
+                              std::move(Emitter));
     else
       S = createMachOStreamer(Ctx, std::move(TAB), std::move(OW),
-                              std::move(Emitter), DWARFMustBeAtTheEnd);
+                              std::move(Emitter), false);
     break;
   case Triple::ELF:
     if (ELFStreamerCtorFn)
@@ -53,44 +54,24 @@ MCStreamer *Target::createMCObjectStreamer(
                             std::move(Emitter));
     break;
   case Triple::Wasm:
-    if (WasmStreamerCtorFn)
-      S = WasmStreamerCtorFn(T, Ctx, std::move(TAB), std::move(OW),
-                             std::move(Emitter));
-    else
-      S = createWasmStreamer(Ctx, std::move(TAB), std::move(OW),
-                             std::move(Emitter));
+    S = createWasmStreamer(Ctx, std::move(TAB), std::move(OW),
+                           std::move(Emitter));
     break;
   case Triple::GOFF:
-    if (GOFFStreamerCtorFn)
-      S = GOFFStreamerCtorFn(Ctx, std::move(TAB), std::move(OW),
-                             std::move(Emitter));
-    else
-      S = createGOFFStreamer(Ctx, std::move(TAB), std::move(OW),
-                             std::move(Emitter));
+    S = createGOFFStreamer(Ctx, std::move(TAB), std::move(OW),
+                           std::move(Emitter));
     break;
   case Triple::XCOFF:
-    if (XCOFFStreamerCtorFn)
-      S = XCOFFStreamerCtorFn(T, Ctx, std::move(TAB), std::move(OW),
-                              std::move(Emitter));
-    else
-      S = createXCOFFStreamer(Ctx, std::move(TAB), std::move(OW),
-                              std::move(Emitter));
+    S = XCOFFStreamerCtorFn(T, Ctx, std::move(TAB), std::move(OW),
+                            std::move(Emitter));
     break;
   case Triple::SPIRV:
-    if (SPIRVStreamerCtorFn)
-      S = SPIRVStreamerCtorFn(T, Ctx, std::move(TAB), std::move(OW),
-                              std::move(Emitter));
-    else
-      S = createSPIRVStreamer(Ctx, std::move(TAB), std::move(OW),
-                              std::move(Emitter));
+    S = createSPIRVStreamer(Ctx, std::move(TAB), std::move(OW),
+                            std::move(Emitter));
     break;
   case Triple::DXContainer:
-    if (DXContainerStreamerCtorFn)
-      S = DXContainerStreamerCtorFn(T, Ctx, std::move(TAB), std::move(OW),
-                                    std::move(Emitter));
-    else
-      S = createDXContainerStreamer(Ctx, std::move(TAB), std::move(OW),
-                                    std::move(Emitter));
+    S = createDXContainerStreamer(Ctx, std::move(TAB), std::move(OW),
+                                  std::move(Emitter));
     break;
   }
   if (ObjectTargetStreamerCtorFn)

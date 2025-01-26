@@ -574,7 +574,7 @@ void SDiagsWriter::HandleDiagnostic(DiagnosticsEngine::Level DiagLevel,
     SmallString<256> diagnostic;
     Info.FormatDiagnostic(diagnostic);
     getMetaDiags()->Report(
-        diag::warn_fe_serialized_diag_failure_during_finalisation)
+        diag::warn_fe_serialized_diag_failure_during_finalization)
         << diagnostic;
     return;
   }
@@ -650,7 +650,7 @@ void SDiagsWriter::EmitDiagnosticMessage(FullSourceLoc Loc, PresumedLoc PLoc,
   Record.push_back(getStableLevel(Level));
   AddLocToRecord(Loc, PLoc, Record);
 
-  if (const Diagnostic *Info = D.dyn_cast<const Diagnostic*>()) {
+  if (const Diagnostic *Info = dyn_cast_if_present<const Diagnostic *>(D)) {
     // Emit the category string lazily and get the category ID.
     unsigned DiagID = DiagnosticIDs::getCategoryNumberForDiag(Info->getID());
     Record.push_back(getEmitCategory(DiagID));

@@ -69,11 +69,9 @@ public:
       return false;
     }
     if (auto recTy = mlir::dyn_cast<RecordType>(ty)) {
-      auto visited = visitedTypes.find(ty);
-      if (visited != visitedTypes.end())
+      auto [visited, inserted] = visitedTypes.try_emplace(ty, false);
+      if (!inserted)
         return visited->second;
-      [[maybe_unused]] auto newIt = visitedTypes.try_emplace(ty, false);
-      assert(newIt.second && "expected ty to not be in the map");
       bool wasAlreadyVisitingRecordType = needConversionIsVisitingRecordType;
       needConversionIsVisitingRecordType = true;
       bool result = false;
@@ -103,6 +101,8 @@ public:
       return needsConversion(unwrapRefType(ty));
     if (auto t = mlir::dyn_cast<SequenceType>(ty))
       return needsConversion(unwrapSequenceType(ty));
+    if (auto t = mlir::dyn_cast<TypeDescType>(ty))
+      return needsConversion(t.getOfTy());
     return false;
   }
 
@@ -165,9 +165,12 @@ public:
           cs.emplace_back(t.first, t.second);
       }
       rec.finalize(ps, cs);
+      rec.pack(ty.isPacked());
       return rec;
     });
-    addArgumentMaterialization(materializeProcedure);
+    addConversion([&](TypeDescType ty) {
+      return TypeDescType::get(convertType(ty.getOfTy()));
+    });
     addSourceMaterialization(materializeProcedure);
     addTargetMaterialization(materializeProcedure);
   }
@@ -211,8 +214,7 @@ private:
 class BoxedProcedurePass
     : public fir::impl::BoxedProcedurePassBase<BoxedProcedurePass> {
 public:
-  BoxedProcedurePass() { options = {true}; }
-  BoxedProcedurePass(bool useThunks) { options = {useThunks}; }
+  using BoxedProcedurePassBase<BoxedProcedurePass>::BoxedProcedurePassBase;
 
   inline mlir::ModuleOp getModule() { return getOperation(); }
 
@@ -221,7 +223,6 @@ public:
       auto *context = &getContext();
       mlir::IRRewriter rewriter(context);
       BoxprocTypeRewriter typeConverter(mlir::UnknownLoc::get(context));
-      mlir::Dialect *firDialect = context->getLoadedDialect("fir");
       getModule().walk([&](mlir::Operation *op) {
         bool opIsValid = true;
         typeConverter.setLocation(op->getLoc());
@@ -367,13 +368,22 @@ public:
                 index, toTy, index.getFieldId(), toOnTy, index.getTypeparams());
             opIsValid = false;
           }
-        } else if (op->getDialect() == firDialect) {
+        } else {
           rewriter.startOpModification(op);
+          // Convert the operands if needed
           for (auto i : llvm::enumerate(op->getResultTypes()))
             if (typeConverter.needsConversion(i.value())) {
               auto toTy = typeConverter.convertType(i.value());
               op->getResult(i.index()).setType(toTy);
             }
+
+          // Convert the type attributes if needed
+          for (const mlir::NamedAttribute &attr : op->getAttrDictionary())
+            if (auto tyAttr = llvm::dyn_cast<mlir::TypeAttr>(attr.getValue()))
+              if (typeConverter.needsConversion(tyAttr.getValue())) {
+                auto toTy = typeConverter.convertType(tyAttr.getValue());
+                op->setAttr(attr.getName(), mlir::TypeAttr::get(toTy));
+              }
           rewriter.finalizeOpModification(op);
         }
         // Ensure block arguments are updated if needed.
@@ -397,11 +407,3 @@ private:
   BoxedProcedureOptions options;
 };
 } // namespace
-
-std::unique_ptr<mlir::Pass> fir::createBoxedProcedurePass() {
-  return std::make_unique<BoxedProcedurePass>();
-}
-
-std::unique_ptr<mlir::Pass> fir::createBoxedProcedurePass(bool useThunks) {
-  return std::make_unique<BoxedProcedurePass>(useThunks);
-}

@@ -16,7 +16,6 @@
 #include "llvm/CodeGen/GlobalISel/Utils.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
-#include "llvm/Support/Debug.h"
 
 #define DEBUG_TYPE "ppc-reg-bank-info"
 
@@ -34,13 +33,6 @@ const RegisterBank &
 PPCRegisterBankInfo::getRegBankFromRegClass(const TargetRegisterClass &RC,
                                             LLT Ty) const {
   switch (RC.getID()) {
-  case PPC::G8RCRegClassID:
-  case PPC::G8RC_NOX0RegClassID:
-  case PPC::G8RC_and_G8RC_NOX0RegClassID:
-  case PPC::GPRCRegClassID:
-  case PPC::GPRC_NOR0RegClassID:
-  case PPC::GPRC_and_GPRC_NOR0RegClassID:
-    return getRegBank(PPC::GPRRegBankID);
   case PPC::VSFRCRegClassID:
   case PPC::SPILLTOVSRRC_and_VSFRCRegClassID:
   case PPC::SPILLTOVSRRC_and_VFRCRegClassID:
@@ -50,6 +42,7 @@ PPCRegisterBankInfo::getRegBankFromRegClass(const TargetRegisterClass &RC,
   case PPC::VSSRCRegClassID:
   case PPC::F4RCRegClassID:
     return getRegBank(PPC::FPRRegBankID);
+<<<<<<< HEAD
   case PPC::VSRCRegClassID:
   case PPC::VRRCRegClassID:
   case PPC::VR128RCRegClassID:
@@ -62,8 +55,10 @@ PPCRegisterBankInfo::getRegBankFromRegClass(const TargetRegisterClass &RC,
   case PPC::CRRCRegClassID:
   case PPC::CRBITRCRegClassID:
     return getRegBank(PPC::CRRegBankID);
+=======
+>>>>>>> main
   default:
-    llvm_unreachable("Unexpected register class");
+    return PPCGenRegisterBankInfo::getRegBankFromRegClass(RC, Ty);
   }
 }
 

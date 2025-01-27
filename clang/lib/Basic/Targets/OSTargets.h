@@ -802,6 +802,29 @@ public:
   }
 };
 
+// Xbox 360 target
+template <typename Target>
+class LLVM_LIBRARY_VISIBILITY Xbox360TargetInfo : public OSTargetInfo<Target> {
+protected:
+  void getOSDefines(const LangOptions &Opts, const llvm::Triple &Triple,
+                    MacroBuilder &Builder) const override {
+    addWindowsDefines(Triple, Opts, Builder);
+  }
+
+public:
+  Xbox360TargetInfo(const llvm::Triple &Triple, const TargetOptions &Opts)
+      : OSTargetInfo<Target>(Triple, Opts) {
+    this->WCharType = TargetInfo::UnsignedShort;
+    this->WIntType = TargetInfo::UnsignedShort;
+    this->LongWidth = this->LongAlign = 32;
+    this->PointerWidth = this->PointerAlign = 32;
+    this->IntMaxType = TargetInfo::SignedLongLong;
+    this->Int64Type = TargetInfo::SignedLongLong;
+    this->SizeType = TargetInfo::UnsignedInt;
+    this->resetDataLayout("E-m:w-S128-p:32:32-Fi32-i64:64-n32:64-v128:128");
+  }
+};
+
 template <typename Target>
 class LLVM_LIBRARY_VISIBILITY NaClTargetInfo : public OSTargetInfo<Target> {
 protected:

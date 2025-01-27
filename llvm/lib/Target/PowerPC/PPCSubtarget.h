@@ -191,9 +191,15 @@ public:
   }
 
   unsigned  getRedZoneSize() const {
-    if (isPPC64())
+    if (isPPC64()) {
+      if (isTargetXbox360()) {
+        // 18*8 GPRs (R14-R31) + 18*8 FPRs (FPR14-FPR31) + 64*16 (VR64-VR127)
+        // + misc (return addr, FPCSR, and presumably XER and CTR)
+        return 1344;
+      }
       // 288 bytes = 18*8 (FPRs) + 18*8 (GPRs, GPR13 reserved)
       return 288;
+    }
 
     // AIX PPC32: 220 bytes = 18*8 (FPRs) + 19*4 (GPRs);
     // PPC32 SVR4ABI has no redzone.
@@ -211,9 +217,10 @@ public:
   bool isTargetELF() const { return TargetTriple.isOSBinFormatELF(); }
   bool isTargetMachO() const { return TargetTriple.isOSBinFormatMachO(); }
   bool isTargetLinux() const { return TargetTriple.isOSLinux(); }
+  bool isTargetXbox360() const { return TargetTriple.isOSXbox360(); }
 
   bool isAIXABI() const { return TargetTriple.isOSAIX(); }
-  bool isSVR4ABI() const { return !isAIXABI(); }
+  bool isSVR4ABI() const { return !isAIXABI() && !isTargetXbox360(); }
   bool isELFv2ABI() const;
 
   bool is64BitELFABI() const { return  isSVR4ABI() && isPPC64(); }
@@ -288,7 +295,7 @@ public:
   }
 
   MCRegister getStackPointerRegister() const {
-    return IsPPC64 ? PPC::X1 : PPC::R1;
+    return IsPPC64 && TargetTriple.isXbox360() ? PPC::X1 : PPC::R1;
   }
 
   bool isXRaySupported() const override { return IsPPC64 && IsLittleEndian; }

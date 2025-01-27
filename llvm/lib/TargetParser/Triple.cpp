@@ -297,6 +297,7 @@ StringRef Triple::getOSTypeName(OSType Kind) {
   case WASI: return "wasi";
   case WatchOS: return "watchos";
   case Win32: return "windows";
+  case Xbox360: return "xbox360";
   case ZOS: return "zos";
   case ShaderModel: return "shadermodel";
   case LiteOS: return "liteos";
@@ -653,6 +654,7 @@ static Triple::OSType parseOS(StringRef OSName) {
     .StartsWith("kfreebsd", Triple::KFreeBSD)
     .StartsWith("linux", Triple::Linux)
     .StartsWith("lv2", Triple::Lv2)
+    .StartsWith("xbox360", Triple::Xbox360)
     .StartsWith("macos", Triple::MacOSX)
     .StartsWith("netbsd", Triple::NetBSD)
     .StartsWith("openbsd", Triple::OpenBSD)
@@ -953,6 +955,8 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
       return Triple::XCOFF;
     if (T.isOSDarwin())
       return Triple::MachO;
+    if (T.isOSXbox360())
+      return Triple::COFF;
     return Triple::ELF;
 
   case Triple::systemz:

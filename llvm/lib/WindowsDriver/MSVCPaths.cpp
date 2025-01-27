@@ -505,6 +505,20 @@ bool findVCToolChainViaCommandLine(vfs::FileSystem &VFS,
   return false;
 }
 
+bool findXEDKToolChainViaCommandLine(vfs::FileSystem &VFS,
+                                   std::optional<StringRef> XEDKRoot,
+                                   std::string &Path, ToolsetLayout &VSLayout) {
+  // Don't validate the input; trust the value supplied by the user.
+  // The primary motivation is to prevent unnecessary file and registry access.
+  if (XEDKRoot) {
+    SmallString<128> ToolsPath(*XEDKRoot);
+    Path = std::string(ToolsPath);
+    VSLayout = ToolsetLayout::OlderVS;
+    return true;
+  }
+  return false;
+}
+
 bool findVCToolChainViaEnvironment(vfs::FileSystem &VFS, std::string &Path,
                                    ToolsetLayout &VSLayout) {
   // These variables are typically set by vcvarsall.bat
@@ -610,6 +624,17 @@ bool findVCToolChainViaEnvironment(vfs::FileSystem &VFS, std::string &Path,
     NotAToolChain:
       continue;
     }
+  }
+  return false;
+}
+
+bool findXEDKToolChainViaEnvironment(vfs::FileSystem &VFS, std::string &Path,
+                                   ToolsetLayout &VSLayout) {
+  if (std::optional<std::string> XEDKRoot =
+          sys::Process::GetEnv("XEDK")) {
+    Path = std::move(*XEDKRoot);
+    VSLayout = ToolsetLayout::OlderVS;
+    return true;
   }
   return false;
 }

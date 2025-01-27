@@ -303,6 +303,45 @@ public:
   void emitModuleCommandLines(Module &M) override;
 };
 
+class PPCXbox360AsmPrinter : public PPCAsmPrinter {
+public:
+  PPCXbox360AsmPrinter(TargetMachine &TM, std::unique_ptr<MCStreamer> Streamer)
+      : PPCAsmPrinter(TM, std::move(Streamer)) {
+    if (MAI->isLittleEndian())
+      report_fatal_error(
+          "cannot create Xbox 360 PPC Assembly Printer for a little-endian target");
+  }
+
+  StringRef getPassName() const override { return "Xbox 360 PPC Assembly Printer"; }
+
+  // bool doInitialization(Module &M) override;
+
+  // void emitXXStructorList(const DataLayout &DL, const Constant *List,
+  //                         bool IsCtor) override;
+
+  // void SetupMachineFunction(MachineFunction &MF) override;
+
+  // void emitGlobalVariable(const GlobalVariable *GV) override;
+
+  // void emitFunctionDescriptor() override;
+
+  // void emitFunctionEntryLabel() override;
+
+  // void emitFunctionBodyEnd() override;
+
+  // void emitEndOfAsmFile(Module &) override;
+
+  // void emitLinkage(const GlobalValue *GV, MCSymbol *GVSym) const override;
+
+  // void emitInstruction(const MachineInstr *MI) override;
+
+  // bool doFinalization(Module &M) override;
+
+  // void emitTTypeReference(const GlobalValue *GV, unsigned Encoding) override;
+
+  // void emitModuleCommandLines(Module &M) override;
+};
+
 } // end anonymous namespace
 
 void PPCAsmPrinter::PrintSymbolOperand(const MachineOperand &MO,
@@ -820,7 +859,8 @@ void PPCAsmPrinter::emitInstruction(const MachineInstr *MI) {
               PPC::VFRCRegClass.contains(Reg) ||
               PPC::VRRCRegClass.contains(Reg) ||
               PPC::VSFRCRegClass.contains(Reg) ||
-              PPC::VSSRCRegClass.contains(Reg)
+              PPC::VSSRCRegClass.contains(Reg) ||
+              PPC::VR128RCRegClass.contains(Reg)
               )
             llvm_unreachable("SPE targets cannot have FPRegs!");
         } else {
@@ -1969,8 +2009,7 @@ void PPCLinuxAsmPrinter::emitStartOfAsmFile(Module &M) {
 void PPCLinuxAsmPrinter::emitFunctionEntryLabel() {
   // linux/ppc32 - Normal entry label.
   if (!Subtarget->isPPC64() &&
-      (!isPositionIndependent() ||
-       MF->getFunction().getParent()->getPICLevel() == PICLevel::SmallPIC))
+      (!isPositionIndependent() || MF->getFunction().getParent()->getPICLevel() == PICLevel::SmallPIC))
     return AsmPrinter::emitFunctionEntryLabel();
 
   if (!Subtarget->isPPC64()) {
@@ -2029,6 +2068,7 @@ void PPCLinuxAsmPrinter::emitFunctionEntryLabel() {
   // entry point.
   OutStreamer->emitValue(MCSymbolRefExpr::create(Symbol1, OutContext),
                          8 /*size*/);
+
   MCSymbol *Symbol2 = OutContext.getOrCreateSymbol(StringRef(".TOC."));
   // Generates a R_PPC64_TOC relocation for TOC base insertion.
   OutStreamer->emitValue(
@@ -3302,6 +3342,8 @@ createPPCAsmPrinterPass(TargetMachine &tm,
                         std::unique_ptr<MCStreamer> &&Streamer) {
   if (tm.getTargetTriple().isOSAIX())
     return new PPCAIXAsmPrinter(tm, std::move(Streamer));
+  else if (tm.getTargetTriple().isOSXbox360())
+    return new PPCXbox360AsmPrinter(tm, std::move(Streamer));
 
   return new PPCLinuxAsmPrinter(tm, std::move(Streamer));
 }

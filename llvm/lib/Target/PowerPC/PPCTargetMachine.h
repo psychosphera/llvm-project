@@ -25,7 +25,7 @@ namespace llvm {
 ///
 class PPCTargetMachine final : public LLVMTargetMachine {
 public:
-  enum PPCABI { PPC_ABI_UNKNOWN, PPC_ABI_ELFv1, PPC_ABI_ELFv2 };
+  enum PPCABI { PPC_ABI_UNKNOWN, PPC_ABI_ELFv1, PPC_ABI_ELFv2, PPC_ABI_XBOX_360 };
   enum Endian { NOT_DETECTED, LITTLE, BIG };
 
 private:

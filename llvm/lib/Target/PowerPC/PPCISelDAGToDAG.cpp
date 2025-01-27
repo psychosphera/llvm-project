@@ -2923,9 +2923,7 @@ class IntegerCompareEliminator {
 public:
   IntegerCompareEliminator(SelectionDAG *DAG,
                            PPCDAGToDAGISel *Sel) : CurDAG(DAG), S(Sel) {
-    assert(CurDAG->getTargetLoweringInfo()
-           .getPointerTy(CurDAG->getDataLayout()).getSizeInBits() == 64 &&
-           "Only expecting to use this on 64 bit targets.");
+    assert(CurDAG->getSubtarget().getTargetTriple().isPPC64() && "Only expecting to use this on 64 bit targets.");
   }
   SDNode *Select(SDNode *N) {
     if (CmpInGPR == ICGPR_None)
@@ -5933,7 +5931,7 @@ void PPCDAGToDAGISel::Select(SDNode *N) {
              N->getValueType(0) == MVT::v2i64)
       SelectCCOp = PPC::SELECT_CC_VSRC;
     else
-      SelectCCOp = PPC::SELECT_CC_VRRC;
+      SelectCCOp = Subtarget->isTargetXbox360() ? PPC::SELECT_CC_VR128RC : PPC::SELECT_CC_VRRC;
 
     SDValue Ops[] = { CCReg, N->getOperand(2), N->getOperand(3),
                         getI32Imm(BROpc, dl) };
@@ -6079,6 +6077,7 @@ void PPCDAGToDAGISel::Select(SDNode *N) {
     return;
   }
   case PPCISD::TOC_ENTRY: {
+    assert(!Subtarget->isTargetXbox360() && "Xbox 360 has no TOC.");
     const bool isPPC64 = Subtarget->isPPC64();
     const bool isELFABI = Subtarget->isSVR4ABI();
     const bool isAIXABI = Subtarget->isAIXABI();
@@ -6202,7 +6201,7 @@ void PPCDAGToDAGISel::Select(SDNode *N) {
 
     assert(isPPC64 && "TOC_ENTRY already handled for 32-bit.");
     // Build the address relative to the TOC-pointer.
-    ReplaceNode(N, CurDAG->getMachineNode(PPC::ADDItocL8, dl, MVT::i64,
+    ReplaceNode(N, CurDAG->getMachineNode(PPC::ADDItocL8, dl, VT,
                                           SDValue(Tmp, 0), GA));
     return;
   }
@@ -6803,6 +6802,7 @@ void PPCDAGToDAGISel::PeepholeCROps() {
       case PPC::SELECT_SPE:
       case PPC::SELECT_SPE4:
       case PPC::SELECT_VRRC:
+      case PPC::SELECT_VR128RC:
       case PPC::SELECT_VSFRC:
       case PPC::SELECT_VSSRC:
       case PPC::SELECT_VSRC: {
@@ -7122,6 +7122,7 @@ void PPCDAGToDAGISel::PeepholeCROps() {
       case PPC::SELECT_SPE:
       case PPC::SELECT_SPE4:
       case PPC::SELECT_VRRC:
+      case PPC::SELECT_VR128RC:
       case PPC::SELECT_VSFRC:
       case PPC::SELECT_VSSRC:
       case PPC::SELECT_VSRC:

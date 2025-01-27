@@ -67,7 +67,7 @@ void ARMWinCOFFStreamer::finishImpl() {
 }
 
 MCStreamer *
-llvm::createARMWinCOFFStreamer(MCContext &Context,
+llvm::createARMWinCOFFStreamer(const Triple& T, MCContext &Context,
                                std::unique_ptr<MCAsmBackend> &&MAB,
                                std::unique_ptr<MCObjectWriter> &&OW,
                                std::unique_ptr<MCCodeEmitter> &&Emitter) {

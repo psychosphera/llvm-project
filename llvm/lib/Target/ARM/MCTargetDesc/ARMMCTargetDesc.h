@@ -89,7 +89,7 @@ MCAsmBackend *createARMBEAsmBackend(const Target &T, const MCSubtargetInfo &STI,
 
 // Construct a PE/COFF machine code streamer which will generate a PE/COFF
 // object file.
-MCStreamer *createARMWinCOFFStreamer(MCContext &Context,
+MCStreamer *createARMWinCOFFStreamer(const Triple& T, MCContext &Context,
                                      std::unique_ptr<MCAsmBackend> &&MAB,
                                      std::unique_ptr<MCObjectWriter> &&OW,
                                      std::unique_ptr<MCCodeEmitter> &&Emitter);

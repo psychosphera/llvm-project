@@ -88,6 +88,9 @@ bool findVCToolChainViaCommandLine(
 // Check various environment variables to try and find a toolchain.
 bool findVCToolChainViaEnvironment(vfs::FileSystem &VFS, std::string &Path,
                                    ToolsetLayout &VSLayout);
+// Check various environment variables to try and find a toolchain.
+bool findXEDKToolChainViaEnvironment(vfs::FileSystem &VFS, std::string &Path,
+                                   ToolsetLayout &VSLayout);                                  
 
 // Query the Setup Config server for installs, then pick the newest version
 // and find its default VC toolchain. If `VCToolsVersion` is specified, that

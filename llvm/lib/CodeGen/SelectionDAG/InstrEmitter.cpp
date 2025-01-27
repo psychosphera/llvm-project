@@ -152,6 +152,7 @@ void InstrEmitter::EmitCopyFromReg(SDNode *Node, unsigned ResNo, bool IsClone,
   }
 
   const TargetRegisterClass *SrcRC = nullptr, *DstRC = nullptr;
+  // LLVM_DEBUG(dbgs() << "EmitCopyFromReg: SrcReg=" << SrcReg.id() << ", VT=" << VT << "\n");
   SrcRC = TRI->getMinimalPhysRegClass(SrcReg, VT);
 
   // Figure out the register class to create for the destreg.

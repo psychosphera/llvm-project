@@ -396,7 +396,8 @@ createMachOStreamer(MCContext &Ctx, std::unique_ptr<MCAsmBackend> &&TAB,
 }
 
 static MCStreamer *
-createWinCOFFStreamer(MCContext &Ctx, std::unique_ptr<MCAsmBackend> &&TAB,
+createWinCOFFStreamer(const Triple& T, MCContext &Ctx, 
+                      std::unique_ptr<MCAsmBackend> &&TAB,
                       std::unique_ptr<MCObjectWriter> &&OW,
                       std::unique_ptr<MCCodeEmitter> &&Emitter) {
   return createAArch64WinCOFFStreamer(Ctx, std::move(TAB), std::move(OW),

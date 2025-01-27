@@ -260,13 +260,22 @@ static void addVisualCDefines(const LangOptions &Opts, MacroBuilder &Builder) {
 void addWindowsDefines(const llvm::Triple &Triple, const LangOptions &Opts,
                        MacroBuilder &Builder) {
   Builder.defineMacro("_WIN32");
-  if (Triple.isArch64Bit())
+  if (Triple.isArch64Bit() && !Triple.isXbox360())
     Builder.defineMacro("_WIN64");
   if (Triple.isWindowsGNUEnvironment())
     addMinGWDefines(Triple, Opts, Builder);
   else if (Triple.isKnownWindowsMSVCEnvironment() ||
            (Triple.isWindowsItaniumEnvironment() && Opts.MSVCCompat))
     addVisualCDefines(Opts, Builder);
+  if (Triple.isXbox360()) {
+    Builder.defineMacro("_XBOX");
+    Builder.defineMacro("XBOX_VER", "200");
+    // FIXME: VMX128 is creating errors in codegen. Emit _XM_NO_INTRINSICS_ 
+    // instead until codegen is fixed.
+    //Builder.defineMacro("__VMX128_SUPPORTED");
+    //Builder.defineMacro("_XM_NO_INTRINSICS_");
+     
+  }
 }
 
 } // namespace targets

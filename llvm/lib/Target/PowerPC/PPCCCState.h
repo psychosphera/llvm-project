@@ -68,6 +68,36 @@ public:
   bool isFixed(unsigned ValNo) const { return IsFixed.test(ValNo); }
 };
 
+class Xbox360CCState : public CCState {
+private:
+  BitVector IsFixed;
+
+public:
+  Xbox360CCState(CallingConv::ID CC, bool IsVarArg, MachineFunction &MF,
+             SmallVectorImpl<CCValAssign> &Locs, LLVMContext &C)
+      : CCState(CC, IsVarArg, MF, Locs, C) {}
+
+  void AnalyzeFormalArguments(const SmallVectorImpl<ISD::InputArg> &Ins,
+                              CCAssignFn Fn) {
+    // All formal arguments are fixed.
+    IsFixed.resize(Ins.size(), true);
+    CCState::AnalyzeFormalArguments(Ins, Fn);
+  }
+
+  void AnalyzeCallOperands(const SmallVectorImpl<ISD::OutputArg> &Outs,
+                           CCAssignFn Fn) {
+    // Record whether the call operand was a fixed argument.
+    IsFixed.resize(Outs.size(), false);
+    for (unsigned ValNo = 0, E = Outs.size(); ValNo != E; ++ValNo)
+      if (Outs[ValNo].IsFixed)
+        IsFixed.set(ValNo);
+
+    CCState::AnalyzeCallOperands(Outs, Fn);
+  }
+
+  bool isFixed(unsigned ValNo) const { return IsFixed.test(ValNo); }
+};
+
 } // end namespace llvm
 
 #endif

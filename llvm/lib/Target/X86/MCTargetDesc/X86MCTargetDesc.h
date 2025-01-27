@@ -124,7 +124,7 @@ MCTargetStreamer *createX86ObjectTargetStreamer(MCStreamer &S,
 /// PE/COFF format object files.
 ///
 /// Takes ownership of \p AB and \p CE.
-MCStreamer *createX86WinCOFFStreamer(MCContext &C,
+MCStreamer *createX86WinCOFFStreamer(const Triple& T, MCContext &C,
                                      std::unique_ptr<MCAsmBackend> &&AB,
                                      std::unique_ptr<MCObjectWriter> &&OW,
                                      std::unique_ptr<MCCodeEmitter> &&CE);

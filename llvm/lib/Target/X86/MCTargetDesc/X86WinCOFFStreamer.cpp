@@ -73,7 +73,8 @@ void X86WinCOFFStreamer::finishImpl() {
 } // namespace
 
 MCStreamer *
-llvm::createX86WinCOFFStreamer(MCContext &C, std::unique_ptr<MCAsmBackend> &&AB,
+llvm::createX86WinCOFFStreamer(const Triple& T, MCContext &C, 
+                               std::unique_ptr<MCAsmBackend> &&AB,
                                std::unique_ptr<MCObjectWriter> &&OW,
                                std::unique_ptr<MCCodeEmitter> &&CE) {
   return new X86WinCOFFStreamer(C, std::move(AB), std::move(CE), std::move(OW));

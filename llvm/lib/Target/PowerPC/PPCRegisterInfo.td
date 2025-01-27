@@ -85,6 +85,11 @@ class VR<VF SubReg, VF SubRegH, string n> : PPCReg<n> {
   let SubRegIndices = [sub_64, sub_64_hi_phony];
 }
 
+// VR128 - One of the other 96 128-bit vector registers
+class VR128<bits<7> num, string n> : PPCReg<n> {
+  let HWEncoding{6-0} = num;
+}
+
 // VSRL - One of the 32 128-bit VSX registers that overlap with the scalar
 // floating-point registers.
 class VSRL<FPR SubReg, FPR SubRegH, string n> : PPCReg<n> {
@@ -189,6 +194,10 @@ let CoveredBySubRegs = 1 in {
 // Vector registers
 foreach Index = 0-31 in {
   def V#Index : VR<!cast<VF>("VF"#Index), !cast<VF>("VFH"#Index), "v"#Index>,
+                DwarfRegNum<[!add(Index, 77), !add(Index, 77)]>;
+}
+foreach Index = 32-127 in {
+  def V#Index : VR128<Index, "v" #Index>,
                 DwarfRegNum<[!add(Index, 77), !add(Index, 77)]>;
 }
 
@@ -422,6 +431,23 @@ def VRRC : RegisterClass<"PPC",
                              V12, V13, V14, V15, V16, V17, V18, V19, V31, V30,
                              V29, V28, V27, V26, V25, V24, V23, V22, V21, V20)>;
 
+def VR128RC : RegisterClass<"PPC",
+                         [v16i8,v8i16,v4i32,v2i64,v1i128,v4f32,v2f64, f128],
+                         128,
+                         (add V2, V3, V4, V5, V0, V1, V6, V7, V8, V9, V10, V11,
+                             V12, V13, V14, V15, V16, V17, V18, V19, V31, V30,
+                             V29, V28, V27, V26, V25, V24, V23, V22, V21, V20,
+                             V39, V38, V37, V36, V35, V34, V33, V32,
+                             V49, V48, V47, V46, V45, V44, V43, V42, V41, V40,
+                             V59, V58, V57, V56, V55, V54, V53, V52, V51, V50,
+                             V69, V68, V67, V66, V65, V64, V63, V62, V61, V60,
+                             V79, V78, V77, V76, V75, V74, V73, V72, V71, V70,
+                             V89, V88, V87, V86, V85, V84, V83, V82, V81, V80,
+                             V99, V98, V97, V96, V95, V94, V93, V92, V91, V90,
+                             V109, V108, V107, V106, V105, V104, V103, V102, V101, V100,
+                             V119, V118, V117, V116, V115, V114, V113, V112, V111, V101,
+                             V127, V126, V125, V124, V123, V122, V121, V102)>;
+
 // VSX register classes (the allocation order mirrors that of the corresponding
 // subregister classes).
 def VSLRC : RegisterClass<"PPC", [v4i32,v4f32,v2f64,v2i64], 128,
@@ -579,8 +605,14 @@ def fpairrc : RegisterOperand<FpRC> {
 def PPCRegVRRCAsmOperand : AsmOperandClass {
   let Name = "RegVRRC"; let PredicateMethod = "isRegNumber";
 }
+def PPCRegVR128RCAsmOperand : AsmOperandClass {
+  let Name = "RegVR128RC"; let PredicateMethod = "isRegNumber";
+}
 def vrrc : RegisterOperand<VRRC> {
   let ParserMatchClass = PPCRegVRRCAsmOperand;
+}
+def vr128rc : RegisterOperand<VR128RC> {
+  let ParserMatchClass = PPCRegVR128RCAsmOperand;
 }
 def PPCRegVFRCAsmOperand : AsmOperandClass {
   let Name = "RegVFRC"; let PredicateMethod = "isRegNumber";

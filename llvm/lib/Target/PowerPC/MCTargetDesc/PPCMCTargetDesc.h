@@ -69,6 +69,9 @@ createPPCMachObjectWriter(bool Is64Bit, uint32_t CPUType, uint32_t CPUSubtype);
 /// Construct a PPC XCOFF object writer.
 std::unique_ptr<MCObjectTargetWriter> createPPCXCOFFObjectWriter(bool Is64Bit);
 
+/// Construct a PPC WinCOFF object writer.
+std::unique_ptr<MCObjectTargetWriter> createPPCWinCOFFObjectWriter();
+
 /// Returns true iff Val consists of one contiguous run of 1s with any number of
 /// 0s on either side.  The 1s are allowed to wrap from LSB to MSB, so
 /// 0x000FFF0, 0x0000FFFF, and 0xFF0000FF are all runs.  0x0F0F0000 is not,
@@ -205,6 +208,23 @@ enum {
         X##22, X##23, X##24, X##25, X##26, X##27, X##28, X##29, X##30, X##31   \
   }
 
+#define PPC_REGS0_127(X)                                                                 \
+  {                                                                                      \
+    X##0, X##1, X##2, X##3, X##4, X##5, X##6, X##7, X##8, X##9, X##10, X##11,            \
+        X##12,  X##13,  X##14,  X##15,  X##16,  X##17,  X##18,  X##19,  X##20,  X##21,   \
+        X##22,  X##23,  X##24,  X##25,  X##26,  X##27,  X##28,  X##29,  X##30,  X##31,   \
+        X##32,  X##33,  X##34,  X##35,  X##36,  X##37,  X##38,  X##39,  X##40,  X##41,   \
+        X##42,  X##43,  X##44,  X##45,  X##46,  X##47,  X##48,  X##49,  X##50,  X##51,   \
+        X##52,  X##53,  X##54,  X##55,  X##56,  X##57,  X##58,  X##59,  X##60,  X##61,   \
+        X##62,  X##63,  X##64,  X##65,  X##66,  X##67,  X##68,  X##69,  X##70,  X##71,   \
+        X##72,  X##73,  X##74,  X##75,  X##76,  X##77,  X##78,  X##79,  X##80,  X##81,   \
+        X##82,  X##83,  X##84,  X##85,  X##86,  X##87,  X##88,  X##89,  X##90,  X##91,   \
+        X##92,  X##93,  X##94,  X##95,  X##96,  X##97,  X##98,  X##99,  X##100, X##101,  \
+        X##102, X##103, X##104, X##105, X##106, X##107, X##108, X##109, X##110, X##111,  \
+        X##112, X##113, X##114, X##115, X##116, X##117, X##118, X##119, X##120, X##121,  \
+        X##122, X##123, X##124, X##125, X##126, X##127                                   \
+  }
+
 #define PPC_REGS_EVEN0_30(X)                                                   \
   {                                                                            \
     X##0, X##2, X##4, X##6, X##8, X##10, X##12, X##14, X##16, X##18, X##20,    \
@@ -262,6 +282,7 @@ using llvm::MCPhysReg;
   static const MCPhysReg SPERegs[32] = PPC_REGS0_31(PPC::S);                   \
   static const MCPhysReg VFRegs[32] = PPC_REGS0_31(PPC::VF);                   \
   static const MCPhysReg VRegs[32] = PPC_REGS0_31(PPC::V);                     \
+  static const MCPhysReg V128Regs[128] = PPC_REGS0_127(PPC::V);                \
   static const MCPhysReg RRegsNoR0[32] = PPC_REGS_NO0_31(PPC::ZERO, PPC::R);   \
   static const MCPhysReg XRegsNoX0[32] = PPC_REGS_NO0_31(PPC::ZERO8, PPC::X);  \
   static const MCPhysReg VSRegs[64] = PPC_REGS_LO_HI(PPC::VSL, PPC::V);        \

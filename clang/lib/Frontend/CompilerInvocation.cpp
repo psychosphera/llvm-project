@@ -4034,6 +4034,8 @@ bool CompilerInvocation::ParseLangArgs(LangOptions &Opts, ArgList &Args,
     Opts.MSCompatibilityVersion = VT.getMajor() * 10000000 +
                                   VT.getMinor().value_or(0) * 100000 +
                                   VT.getSubminor().value_or(0);
+  } else if (T.isXbox360()) {
+    Opts.MSCompatibilityVersion = 160030319;
   }
 
   // Mimicking gcc's behavior, trigraphs are only enabled if -trigraphs

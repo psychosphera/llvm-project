@@ -10881,6 +10881,7 @@ TargetLowering::LowerCallTo(TargetLowering::CallLoweringInfo &CLI) const {
       EVT VT = RetTys[I];
       MVT RegisterVT = getRegisterTypeForCallingConv(CLI.RetTy->getContext(),
                                                      CLI.CallConv, VT);
+      LLVM_DEBUG(dbgs() << "LowerCallTo: VT=" << VT << ", RegisterVT=" << RegisterVT << "\n");
       unsigned NumRegs = getNumRegistersForCallingConv(CLI.RetTy->getContext(),
                                                        CLI.CallConv, VT);
       for (unsigned i = 0; i != NumRegs; ++i) {

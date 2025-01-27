@@ -209,8 +209,9 @@ PPCRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
   // will use the @notoc relocation which will cause this function to set the
   // st_other bit to 1, thereby communicating to its caller that it arbitrarily
   // clobbers the TOC.
-  bool SaveR2 = MF->getRegInfo().isAllocatable(PPC::X2) &&
-                !Subtarget.isUsingPCRelativeCalls();
+  bool SaveR2 = Subtarget.isTargetXbox360() ? false 
+                : MF->getRegInfo().isAllocatable(Subtarget.getTOCPointerRegister()) &&
+                  !Subtarget.isUsingPCRelativeCalls();
 
   // Cold calling convention CSRs.
   if (MF->getFunction().getCallingConv() == CallingConv::Cold) {
@@ -393,9 +394,9 @@ BitVector PPCRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
     markSuperRegs(Reserved, PPC::R13); // Small Data Area pointer register
   }
 
-  // Always reserve r2 on AIX for now.
-  // TODO: Make r2 allocatable on AIX/XCOFF for some leaf functions.
-  if (Subtarget.isAIXABI())
+  // Always reserve r2 on AIX and Xbox 360 for now.
+  // TODO: Make r2 allocatable on AIX/XCOFF and Xbox360/WinCOFF for some leaf functions.
+  if (Subtarget.isAIXABI() || Subtarget.isTargetXbox360())
     markSuperRegs(Reserved, PPC::R2);  // System-reserved register
 
   // On PPC64, r13 is the thread pointer. Never allocate this register.
@@ -417,9 +418,12 @@ BitVector PPCRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
     markSuperRegs(Reserved, PPC::R30);
 
   // Reserve Altivec registers when Altivec is unavailable.
-  if (!Subtarget.hasAltivec())
+  if (!Subtarget.hasAltivec()) {
     for (MCRegister Reg : PPC::VRRCRegClass)
       markSuperRegs(Reserved, Reg);
+    for (MCRegister Reg : PPC::VR128RCRegClass)
+      markSuperRegs(Reserved, Reg);
+  }
 
   if (Subtarget.isAIXABI() && Subtarget.hasAltivec() &&
       !TM.getAIXExtendedAltivecABI()) {
@@ -541,9 +545,10 @@ bool PPCRegisterInfo::isCallerPreservedPhysReg(MCRegister PhysReg,
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const MachineFrameInfo &MFI = MF.getFrameInfo();
 
-  if (!Subtarget.is64BitELFABI() && !Subtarget.isAIXABI())
+  if (!Subtarget.is64BitELFABI() && !Subtarget.isAIXABI() && !Subtarget.isTargetXbox360())
     return false;
-  if (PhysReg == Subtarget.getTOCPointerRegister())
+  // Subtarget.getTOCPointerRegister() will throw an assertion for Xbox 360 since it doesn't use TOC
+  if (Subtarget.isTargetXbox360() || PhysReg == Subtarget.getTOCPointerRegister())
     // X2/R2 is guaranteed to be preserved within a function if it is reserved.
     // The reason it's reserved is that it's the TOC pointer (and the function
     // uses the TOC). In functions where it isn't reserved (i.e. leaf functions
@@ -670,6 +675,11 @@ unsigned PPCRegisterInfo::getRegPressureLimit(const TargetRegisterClass *RC,
       return 52 - DefaultSafety;
   }
     return 64 - DefaultSafety;
+  case PPC::VR128RCRegClassID: {
+    const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
+    assert(Subtarget.isTargetXbox360() && "Only Xbox 360 uses VMX128.");
+    return 128 - DefaultSafety;
+  }
   case PPC::CRRCRegClassID:
     return 8 - DefaultSafety;
   }
@@ -1826,7 +1836,7 @@ Register PPCRegisterInfo::getBaseRegister(const MachineFunction &MF) const {
   if (!hasBasePointer(MF))
     return getFrameRegister(MF);
 
-  if (TM.isPPC64())
+  if (TM.isPPC64() && !TM.getTargetTriple().isXbox360())
     return PPC::X30;
 
   if (Subtarget.isSVR4ABI() && TM.isPositionIndependent())
@@ -1836,7 +1846,7 @@ Register PPCRegisterInfo::getBaseRegister(const MachineFunction &MF) const {
 }
 
 bool PPCRegisterInfo::hasBasePointer(const MachineFunction &MF) const {
-  if (!EnableBasePointer)
+  if (!EnableBasePointer || MF.getSubtarget().getTargetTriple().isXbox360())
     return false;
   if (AlwaysBasePointer)
     return true;

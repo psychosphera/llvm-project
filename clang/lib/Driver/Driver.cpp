@@ -47,6 +47,7 @@
 #include "ToolChains/TCE.h"
 #include "ToolChains/VEToolchain.h"
 #include "ToolChains/WebAssembly.h"
+#include "ToolChains/Xbox360.h"
 #include "ToolChains/XCore.h"
 #include "ToolChains/ZOS.h"
 #include "clang/Basic/DiagnosticDriver.h"
@@ -6426,6 +6427,8 @@ const ToolChain &Driver::getToolChain(const ArgList &Args,
           TC = std::make_unique<toolchains::Generic_ELF>(*this, Target, Args);
         else if (Target.isOSBinFormatMachO())
           TC = std::make_unique<toolchains::MachO>(*this, Target, Args);
+        else if (Target.isOSBinFormatCOFF())
+          TC = std::make_unique<toolchains::Xbox360ToolChain>(*this, Target, Args);
         else
           TC = std::make_unique<toolchains::Generic_GCC>(*this, Target, Args);
         break;

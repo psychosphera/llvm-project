@@ -34,7 +34,7 @@ MCStreamer *Target::createMCObjectStreamer(
   case Triple::COFF:
     assert((T.isOSWindows() || T.isOSXbox360() || T.isUEFI()) &&
            "only Windows and UEFI COFF are supported");
-    S = COFFStreamerCtorFn(Ctx, std::move(TAB), std::move(OW),
+    S = COFFStreamerCtorFn(T, Ctx, std::move(TAB), std::move(OW),
                            std::move(Emitter));
     break;
   case Triple::MachO:

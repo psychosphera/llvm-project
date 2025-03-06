@@ -59,7 +59,7 @@ unsigned PPCWinCOFFObjectWriter::getRelocType(MCContext &Ctx, const MCValue &Tar
   case PPC::fixup_ppc_nofixup:
     return llvm::COFF::IMAGE_REL_PPC_ABSOLUTE;
   case PPC::fixup_ppc_half16ds:
-    return llvm::COFF::IMAGE_REL_PPC_ADDR14;
+    return llvm::COFF::IMAGE_REL_PPC_ADDR16;
   case FK_Data_2:
     return llvm::COFF::IMAGE_REL_PPC_ADDR16;
   case FK_Data_4:

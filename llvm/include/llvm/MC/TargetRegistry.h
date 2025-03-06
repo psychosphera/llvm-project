@@ -195,7 +195,8 @@ public:
                       std::unique_ptr<MCObjectWriter> &&OW,
                       std::unique_ptr<MCCodeEmitter> &&Emitter);
   using COFFStreamerCtorTy =
-      MCStreamer *(*)(MCContext &Ctx, std::unique_ptr<MCAsmBackend> &&TAB,
+      MCStreamer *(*)(const Triple &T, MCContext &Ctx, 
+                      std::unique_ptr<MCAsmBackend> &&TAB,
                       std::unique_ptr<MCObjectWriter> &&OW,
                       std::unique_ptr<MCCodeEmitter> &&Emitter);
   using XCOFFStreamerCtorTy =

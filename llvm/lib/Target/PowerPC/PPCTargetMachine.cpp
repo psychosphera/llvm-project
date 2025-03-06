@@ -202,7 +202,6 @@ static std::string getDataLayoutString(const Triple &T) {
   // which is 256 and 512 bytes - way over aligned.
   if (is64Bit && (T.isOSAIX() || T.isOSLinux()))
     Ret += "-S128-v256:256:256-v512:512:512";
-
   return Ret;
 }
 

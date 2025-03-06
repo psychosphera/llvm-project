@@ -259,6 +259,14 @@ static MCInstrAnalysis *createMipsMCInstrAnalysis(const MCInstrInfo *Info) {
   return new MipsMCInstrAnalysis(Info);
 }
 
+static MCStreamer* 
+createMipsWinCOFFStreamer(const Triple& T, MCContext &C,
+                          std::unique_ptr<MCAsmBackend> &&AB,
+                          std::unique_ptr<MCObjectWriter> &&OW,
+                          std::unique_ptr<MCCodeEmitter> &&CE) {
+  return createMipsWinCOFFStreamer(C, std::move(AB), std::move(OW), std::move(CE));
+}
+
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeMipsTargetMC() {
   for (Target *T : {&getTheMipsTarget(), &getTheMipselTarget(),
                     &getTheMips64Target(), &getTheMips64elTarget()}) {

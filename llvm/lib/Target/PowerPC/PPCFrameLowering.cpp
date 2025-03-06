@@ -1021,7 +1021,7 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
   // If we are using ROP Protection we need to save the LR here as we cannot
   // move the hashst instruction past the point where we get the stack frame.
   if (MustSaveLR && !HasFastMFLR &&
-      (HasSTUX || !isInt<16>(FrameSize + LROffset) || HasROPProtect))
+      (HasSTUX || !isInt<16>(FrameSize + LROffset) || HasROPProtect)) {
     SaveLR(LROffset);
   }
 

@@ -8149,7 +8149,7 @@ SDValue PPCTargetLowering::LowerFormalArguments_AIX(
 
     if (SaveParams && VA.isRegLoc() && !Flags.isByVal() && !VA.needsCustom()) {
       const TargetRegisterClass *RegClass = getRegClassForSVT(
-          LocVT.SimpleTy, IsPPC64, Subtarget.hasP8Vector(), Subtarget.hasVSX());
+          LocVT.SimpleTy, IsPPC64, Subtarget.hasP8Vector(), Subtarget.hasVSX(), false);
       // On PPC64, debugger assumes extended 8-byte values are stored from GPR.
       MVT SaveVT = RegClass == &PPC::G8RCRegClass ? MVT::i64 : LocVT;
       const Register VReg = MF.addLiveIn(VA.getLocReg(), RegClass);
@@ -18342,7 +18342,7 @@ SDValue PPCTargetLowering::LowerRETURNADDR(SDValue Op,
     // Xbox 360 only stores the lower word of LR, account for that special case here.
     SDValue Offset =
         DAG.getConstant(Subtarget.getFrameLowering()->getReturnSaveOffset(), dl,
-                        isPPC64 && !Subtarget.isTargetXbox360() ? MVT::i64 : MVT::i32);
+                        Subtarget.isPPC64() && !Subtarget.isTargetXbox360() ? MVT::i64 : MVT::i32);
     return DAG.getLoad(PtrVT, dl, DAG.getEntryNode(),
                        DAG.getNode(ISD::ADD, dl, PtrVT, FrameAddr, Offset),
                        MachinePointerInfo());

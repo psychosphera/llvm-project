@@ -45,9 +45,9 @@ MCAsmBackend *createMipsAsmBackend(const Target &T, const MCSubtargetInfo &STI,
 /// PE/COFF format object files.
 ///
 /// Takes ownership of \p AB and \p CE.
-MCStreamer *createMipsWinCOFFStreamer(MCContext &C,
+MCStreamer *createMipsWinCOFFStreamer(const Triple &T, MCContext &C,
                                       std::unique_ptr<MCAsmBackend> &&AB,
-                                      std::unique_ptr<MCObjectWriter> &&OW, 
+                                      std::unique_ptr<MCObjectWriter> &&OW,
                                       std::unique_ptr<MCCodeEmitter> &&CE);
 
 /// Construct a Mips ELF object writer.

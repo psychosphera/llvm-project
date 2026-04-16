@@ -16,7 +16,6 @@
 #include "PPCELFStreamer.h"
 #include "PPCTargetStreamer.h"
 #include "PPCXCOFFStreamer.h"
-#include "PPCWinCOFFStreamer.h"
 #include "TargetInfo/PowerPCTargetInfo.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/StringRef.h"

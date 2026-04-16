@@ -185,6 +185,11 @@ public:
                                                  const MCRegisterInfo &MRI);
   using MCCodeEmitterCtorTy = MCCodeEmitter *(*)(const MCInstrInfo &II,
                                                  MCContext &Ctx);
+  using DXContainerStreamerCtorTy =
+      MCStreamer *(*)(const Triple &T, MCContext &Ctx,
+                      std::unique_ptr<MCAsmBackend> &&TAB,
+                      std::unique_ptr<MCObjectWriter> &&OW,
+                      std::unique_ptr<MCCodeEmitter> &&Emitter);
   using ELFStreamerCtorTy =
       MCStreamer *(*)(const Triple &T, MCContext &Ctx,
                       std::unique_ptr<MCAsmBackend> &&TAB,
@@ -196,6 +201,21 @@ public:
                       std::unique_ptr<MCCodeEmitter> &&Emitter);
   using COFFStreamerCtorTy =
       MCStreamer *(*)(const Triple &T, MCContext &Ctx,
+                      std::unique_ptr<MCAsmBackend> &&TAB,
+                      std::unique_ptr<MCObjectWriter> &&OW,
+                      std::unique_ptr<MCCodeEmitter> &&Emitter);
+  using GOFFStreamerCtorTy =
+       MCStreamer *(*)(MCContext &Ctx,
+                      std::unique_ptr<MCAsmBackend> &&TAB,
+                      std::unique_ptr<MCObjectWriter> &&OW,
+                      std::unique_ptr<MCCodeEmitter> &&Emitter);
+  using SPIRVStreamerCtorTy =
+       MCStreamer *(*)(const Triple &T, MCContext &Ctx,
+                      std::unique_ptr<MCAsmBackend> &&TAB,
+                      std::unique_ptr<MCObjectWriter> &&OW,
+                      std::unique_ptr<MCCodeEmitter> &&Emitter);
+  using WasmStreamerCtorTy =
+       MCStreamer *(*)(const Triple &T, MCContext &Ctx,
                       std::unique_ptr<MCAsmBackend> &&TAB,
                       std::unique_ptr<MCObjectWriter> &&OW,
                       std::unique_ptr<MCCodeEmitter> &&Emitter);
@@ -305,8 +325,12 @@ private:
 
   // Construction functions for the various object formats, if registered.
   COFFStreamerCtorTy COFFStreamerCtorFn = nullptr;
-  MachOStreamerCtorTy MachOStreamerCtorFn = nullptr;
+  DXContainerStreamerCtorTy DXContainerStreamerCtorFn = nullptr;
   ELFStreamerCtorTy ELFStreamerCtorFn = nullptr;
+  GOFFStreamerCtorTy GOFFStreamerCtorFn = nullptr;
+  MachOStreamerCtorTy MachOStreamerCtorFn = nullptr;
+  SPIRVStreamerCtorTy SPIRVStreamerCtorFn = nullptr;
+  WasmStreamerCtorTy WasmStreamerCtorFn = nullptr;
   XCOFFStreamerCtorTy XCOFFStreamerCtorFn = nullptr;
 
   /// Construction function for this target's null TargetStreamer, if
@@ -539,15 +563,15 @@ public:
     case Triple::UnknownObjectFormat:
       llvm_unreachable("Unknown object format");
     case Triple::COFF:
-      assert((T.isOSWindows() || T.isOSXbox360() || T.isUEFI()) &&
+      assert((T.isOSWindows() || T.isXbox360() || T.isUEFI()) &&
              "only Windows and UEFI COFF are supported");
-      S = COFFStreamerCtorFn(Ctx, std::move(TAB), std::move(OW),
-                             std::move(Emitter), IncrementalLinkerCompatible);
+      S = COFFStreamerCtorFn(T, Ctx, std::move(TAB), std::move(OW),
+                             std::move(Emitter));
       break;
     case Triple::MachO:
       if (MachOStreamerCtorFn)
         S = MachOStreamerCtorFn(Ctx, std::move(TAB), std::move(OW),
-                                std::move(Emitter), DWARFMustBeAtTheEnd);
+                                std::move(Emitter));
       else
         S = createMachOStreamer(Ctx, std::move(TAB), std::move(OW),
                                 std::move(Emitter), DWARFMustBeAtTheEnd);
@@ -579,9 +603,6 @@ public:
     case Triple::XCOFF:
       if (XCOFFStreamerCtorFn)
         S = XCOFFStreamerCtorFn(T, Ctx, std::move(TAB), std::move(OW),
-                                std::move(Emitter));
-      else
-        S = createXCOFFStreamer(Ctx, std::move(TAB), std::move(OW),
                                 std::move(Emitter));
       break;
     case Triple::SPIRV:

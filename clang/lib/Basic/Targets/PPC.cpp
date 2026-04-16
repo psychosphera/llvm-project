@@ -297,7 +297,7 @@ static void defineXLCompatMacros(MacroBuilder &Builder) {
 /// #defines that are not tied to a specific subtarget.
 void PPCTargetInfo::getTargetDefines(const LangOptions &Opts,
                                      MacroBuilder &Builder) const {
-  if (getTriple().isOSXbox360()) {
+  if (getTriple().isXbox360()) {
     Builder.defineMacro("_M_PPC");
     Builder.defineMacro("_M_PPCBE");
     return;

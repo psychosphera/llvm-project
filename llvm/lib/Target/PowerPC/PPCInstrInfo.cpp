@@ -1854,40 +1854,6 @@ void PPCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
         .addReg(SrcRegSub1)
         .addReg(SrcRegSub1, getKillRegState(KillSrc));
     return;
-  } else if ((PPC::WACCRCRegClass.contains(DestReg) ||
-              PPC::WACC_HIRCRegClass.contains(DestReg)) &&
-             (PPC::WACCRCRegClass.contains(SrcReg) ||
-              PPC::WACC_HIRCRegClass.contains(SrcReg))) {
-
-    Opc = PPC::WACCRCRegClass.contains(SrcReg) ? PPC::DMXXEXTFDMR512
-                                               : PPC::DMXXEXTFDMR512_HI;
-
-    RegScavenger RS;
-    RS.enterBasicBlockEnd(MBB);
-    RS.backward(std::next(I));
-
-    Register TmpReg1 = RS.scavengeRegisterBackwards(PPC::VSRpRCRegClass, I,
-                                                    /* RestoreAfter */ false, 0,
-                                                    /* AllowSpill */ false);
-
-    RS.setRegUsed(TmpReg1);
-    Register TmpReg2 = RS.scavengeRegisterBackwards(PPC::VSRpRCRegClass, I,
-                                                    /* RestoreAfter */ false, 0,
-                                                    /* AllowSpill */ false);
-
-    BuildMI(MBB, I, DL, get(Opc))
-        .addReg(TmpReg1, RegState::Define)
-        .addReg(TmpReg2, RegState::Define)
-        .addReg(SrcReg, getKillRegState(KillSrc));
-
-    Opc = PPC::WACCRCRegClass.contains(DestReg) ? PPC::DMXXINSTDMR512
-                                                : PPC::DMXXINSTDMR512_HI;
-
-    BuildMI(MBB, I, DL, get(Opc), DestReg)
-        .addReg(TmpReg1, RegState::Kill)
-        .addReg(TmpReg2, RegState::Kill);
-
-    return;
   } else if (PPC::DMRRCRegClass.contains(DestReg) &&
              PPC::DMRRCRegClass.contains(SrcReg)) {
 

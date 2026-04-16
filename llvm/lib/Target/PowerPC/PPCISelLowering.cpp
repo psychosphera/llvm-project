@@ -5290,7 +5290,7 @@ static void CalculateTailCallArgDest(
   int Offset = ArgOffset + SPDiff;
   uint32_t OpSize = (Arg.getValueSizeInBits() + 7) / 8;
   int FI = MF.getFrameInfo().CreateFixedObject(OpSize, Offset, true);
-  EVT VT = isPPC64 ? MVT::i64 : MVT::i32;
+  EVT VT = IsPPC64 ? MVT::i64 : MVT::i32;
   SDValue FIN = DAG.getFrameIndex(FI, VT);
   TailCallArgumentInfo Info;
   Info.Arg = Arg;
@@ -7346,12 +7346,10 @@ static bool CC_Xbox360(unsigned ValNo, MVT ValVT, MVT LocVT,
   return true;
 }
 
-// So far, this function is only used by LowerFormalArguments_AIX()
 static const TargetRegisterClass *getRegClassForSVT(MVT::SimpleValueType SVT,
                                                     bool IsPPC64,
                                                     bool HasP8Vector,
-                                                    bool HasVSX,
-                                                    bool HasVMX128) {
+                                                    bool HasVSX) {
   assert((IsPPC64 || SVT != MVT::i64) &&
          "i64 should have been split for 32-bit codegen.");
 
@@ -7373,7 +7371,7 @@ static const TargetRegisterClass *getRegClassForSVT(MVT::SimpleValueType SVT,
   case MVT::v2i64:
   case MVT::v2f64:
   case MVT::v1i128:
-    return HasVMX128 ?  &PPC::VR128RCRegClass : &PPC::VRRCRegClass;
+    return &PPC::VRRCRegClass;
   }
 }
 
@@ -7457,9 +7455,9 @@ SDValue PPCTargetLowering::LowerCall_Xbox360(
                     *DAG.getContext());
 
   const unsigned LinkageSize = FL->getLinkageSize();
-  const EVT PtrVT = MVT::i32; 
+  const EVT PtrVT = MVT::i32;
   const EVT RegVT = MVT::i64;
-  //const unsigned PtrByteSize = 4;
+  // const unsigned PtrByteSize = 4;
   const unsigned RegByteSize = 8;
   CCInfo.AllocateStack(LinkageSize, Align(RegByteSize));
   CCInfo.AnalyzeCallOperands(Outs, CC_Xbox360);
@@ -7470,7 +7468,7 @@ SDValue PPCTargetLowering::LowerCall_Xbox360(
   // Because we cannot tell if this is needed on the caller side, we have to
   // conservatively assume that it is needed.  As such, make sure we have at
   // least enough stack space for the caller to store the 8 GPRs.
-  const unsigned MinParameterSaveAreaSize = 8 * PtrByteSize;
+  const unsigned MinParameterSaveAreaSize = 8 * RegByteSize;
   const unsigned NumBytes = std::max<unsigned>(
       LinkageSize + MinParameterSaveAreaSize, CCInfo.getStackSize());
 
@@ -7522,7 +7520,7 @@ SDValue PPCTargetLowering::LowerCall_Xbox360(
       while (LoadOffset + RegByteSize <= ByValSize && ArgLocs[I].isRegLoc()) {
         SDValue Load = GetLoad(ArgLocs[I].getLocVT(), LoadOffset);
         MemOpChains.push_back(Load.getValue(1));
-        LoadOffset += PtrByteSize;
+        LoadOffset += RegByteSize;
         const CCValAssign &ByValVA = ArgLocs[I++];
         assert(ByValVA.getValNo() == ValNo &&
                "Unexpected location for pass-by-value argument.");
@@ -7557,8 +7555,9 @@ SDValue PPCTargetLowering::LowerCall_Xbox360(
       // left-justified on AIX. Loads must be a power-of-2 size and cannot be
       // larger than the ByValSize. For example: a 7 byte by-val arg requires 4,
       // 2 and 1 byte loads.
-      const unsigned ResidueBytes = ByValSize % PtrByteSize;
-      assert(ResidueBytes != 0 && LoadOffset + PtrByteSize > ByValSize &&
+      // TODO: un-AIX this section
+      const unsigned ResidueBytes = ByValSize % RegByteSize;
+      assert(ResidueBytes != 0 && LoadOffset + RegByteSize > ByValSize &&
              "Unexpected register residue for by-value argument.");
       SDValue ResidueVal;
       for (unsigned Bytes = 0; Bytes != ResidueBytes;) {
@@ -7799,6 +7798,7 @@ SDValue PPCTargetLowering::LowerFormalArguments_Xbox360(
   const PPCSubtarget &Subtarget = DAG.getSubtarget<PPCSubtarget>();
 
   const unsigned PtrByteSize = 4;
+  const unsigned RegByteSize = 8;
 
   // Assign locations to all of the incoming arguments.
   SmallVector<CCValAssign, 16> ArgLocs;
@@ -7843,6 +7843,8 @@ SDValue PPCTargetLowering::LowerFormalArguments_Xbox360(
       const bool IsImmutable =
           !(getTargetMachine().Options.GuaranteedTailCallOpt &&
             (CallConv == CallingConv::Fast));
+      MachineFunction& MF = DAG.getMachineFunction();
+      MachineFrameInfo& MFI = MF.getFrameInfo();
       int FI = MFI.CreateFixedObject(ValSize, CurArgOffset, IsImmutable);
       SDValue FIN = DAG.getFrameIndex(FI, PtrVT);
       SDValue ArgValue =
@@ -7861,19 +7863,19 @@ SDValue PPCTargetLowering::LowerFormalArguments_Xbox360(
       const unsigned OriginalValNo = VA.getValNo();
       (void)OriginalValNo;
 
-    //   auto HandleCustomVecRegLoc = [&]() {
-    //     assert(I != End && ArgLocs[I].isRegLoc() && ArgLocs[I].needsCustom() &&
-    //            "Missing custom RegLoc.");
-    //     VA = ArgLocs[I++];
-    //     assert(VA.getValVT().isVector() &&
-    //            "Unexpected Val type for custom RegLoc.");
-    //     assert(VA.getValNo() == OriginalValNo &&
-    //            "ValNo mismatch between custom MemLoc and RegLoc.");
-    //     MVT::SimpleValueType SVT = VA.getLocVT().SimpleTy;
-    //     MF.addLiveIn(VA.getLocReg(),
-    //                  getRegClassForSVT(SVT, true, Subtarget.hasP8Vector(),
-    //                                    Subtarget.hasVSX()), true);
-    //   };
+      auto HandleCustomVecRegLoc = [&]() {
+        assert(I != End && ArgLocs[I].isRegLoc() && ArgLocs[I].needsCustom() &&
+               "Missing custom RegLoc.");
+        VA = ArgLocs[I++];
+        assert(VA.getValVT().isVector() &&
+               "Unexpected Val type for custom RegLoc.");
+        assert(VA.getValNo() == OriginalValNo &&
+               "ValNo mismatch between custom MemLoc and RegLoc.");
+        MVT::SimpleValueType SVT = VA.getLocVT().SimpleTy;
+        MF.addLiveIn(VA.getLocReg(),
+                     getRegClassForSVT(SVT, true, Subtarget.hasP8Vector(),
+                                       Subtarget.hasVSX()));
+      };
 
       HandleMemLoc();
       // In 64-bit there will be exactly 2 custom RegLocs that follow, and in
@@ -8012,7 +8014,7 @@ SDValue PPCTargetLowering::LowerFormalArguments_Xbox360(
       Register VReg =
           MF.addLiveIn(VA.getLocReg(),
                        getRegClassForSVT(SVT, true, Subtarget.hasP8Vector(),
-                                         Subtarget.hasVSX(), true));
+                                         Subtarget.hasVSX()));
       SDValue ArgValue = DAG.getCopyFromReg(Chain, dl, VReg, LocVT);
       if (ValVT.isScalarInteger() &&
           (ValVT.getFixedSizeInBits() < LocVT.getFixedSizeInBits())) {
@@ -8044,6 +8046,8 @@ SDValue PPCTargetLowering::LowerFormalArguments_Xbox360(
   FuncInfo->setMinReservedArea(CallerReservedArea);
 
   if (isVarArg) {
+    MachineFunction& MF = DAG.getMachineFunction();
+    MachineFrameInfo& MFI = MF.getFrameInfo();
     FuncInfo->setVarArgsFrameIndex(
         MFI.CreateFixedObject(PtrByteSize, CCInfo.getStackSize(), true));
     SDValue FIN = DAG.getFrameIndex(FuncInfo->getVarArgsFrameIndex(), PtrVT);
@@ -8174,7 +8178,7 @@ SDValue PPCTargetLowering::LowerFormalArguments_AIX(
 
     if (SaveParams && VA.isRegLoc() && !Flags.isByVal() && !VA.needsCustom()) {
       const TargetRegisterClass *RegClass = getRegClassForSVT(
-          LocVT.SimpleTy, IsPPC64, Subtarget.hasP8Vector(), Subtarget.hasVSX(), false);
+          LocVT.SimpleTy, IsPPC64, Subtarget.hasP8Vector(), Subtarget.hasVSX());
       // On PPC64, debugger assumes extended 8-byte values are stored from GPR.
       MVT SaveVT = RegClass == &PPC::G8RCRegClass ? MVT::i64 : LocVT;
       const Register VReg = MF.addLiveIn(VA.getLocReg(), RegClass);
@@ -8252,7 +8256,7 @@ SDValue PPCTargetLowering::LowerFormalArguments_AIX(
         MVT::SimpleValueType SVT = VA.getLocVT().SimpleTy;
         MF.addLiveIn(VA.getLocReg(),
                      getRegClassForSVT(SVT, IsPPC64, Subtarget.hasP8Vector(),
-                                       Subtarget.hasVSX(), false));
+                                       Subtarget.hasVSX()));
       };
 
       HandleMemLoc();
@@ -8391,7 +8395,7 @@ SDValue PPCTargetLowering::LowerFormalArguments_AIX(
       Register VReg =
           MF.addLiveIn(VA.getLocReg(),
                        getRegClassForSVT(SVT, IsPPC64, Subtarget.hasP8Vector(),
-                                         Subtarget.hasVSX(), false));
+                                         Subtarget.hasVSX()));
       SDValue ArgValue = DAG.getCopyFromReg(Chain, dl, VReg, LocVT);
       if (ValVT.isScalarInteger() &&
           (ValVT.getFixedSizeInBits() < LocVT.getFixedSizeInBits())) {

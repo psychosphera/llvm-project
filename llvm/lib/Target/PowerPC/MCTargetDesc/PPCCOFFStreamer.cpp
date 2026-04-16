@@ -26,7 +26,7 @@ public:
 } // namespace
 
 MCStreamer *llvm::createPPCCOFFStreamer(
-    MCContext &C, std::unique_ptr<MCAsmBackend> &&AB,
+    const Triple& T, MCContext &C, std::unique_ptr<MCAsmBackend> &&AB,
     std::unique_ptr<MCObjectWriter> &&OW, std::unique_ptr<MCCodeEmitter> &&CE) {
   return new PPCCOFFStreamer(C, std::move(AB), std::move(CE),
                                  std::move(OW));

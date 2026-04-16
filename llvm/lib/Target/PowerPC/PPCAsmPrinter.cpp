@@ -356,47 +356,6 @@ public:
   void emitTTypeReference(const GlobalValue *GV, unsigned Encoding) override;
 };
 
-class PPCXbox360AsmPrinter : public PPCAsmPrinter {
-public:
-  PPCXbox360AsmPrinter(TargetMachine &TM, std::unique_ptr<MCStreamer> Streamer)
-      : PPCAsmPrinter(TM, std::move(Streamer)) {
-    if (MAI->isLittleEndian())
-      report_fatal_error(
-          "cannot create Xbox 360 PPC Assembly Printer for a little-endian target");
-  }
-
-  StringRef getPassName() const override { return "Xbox 360 PPC Assembly Printer"; }
-
-  // bool doInitialization(Module &M) override;
-
-  // void emitXXStructorList(const DataLayout &DL, const Constant *List,
-  //                         bool IsCtor) override;
-
-  // void SetupMachineFunction(MachineFunction &MF) override;
-
-  // void emitGlobalVariable(const GlobalVariable *GV) override;
-
-  // void emitFunctionDescriptor() override;
-
-  // void emitFunctionEntryLabel() override;
-
-  // void emitFunctionBodyEnd() override;
-
-  // void emitEndOfAsmFile(Module &) override;
-
-  // void emitLinkage(const GlobalValue *GV, MCSymbol *GVSym) const override;
-
-  // void emitInstruction(const MachineInstr *MI) override;
-
-  // bool doFinalization(Module &M) override;
-
-  // void emitTTypeReference(const GlobalValue *GV, unsigned Encoding) override;
-
-  // void emitModuleCommandLines(Module &M) override;
-};
-
-} // end anonymous namespace
-
 void PPCAsmPrinter::PrintSymbolOperand(const MachineOperand &MO,
                                        raw_ostream &O) {
   // Computing the address of a global symbol, not calling it.
@@ -613,7 +572,7 @@ PPCAsmPrinter::lookUpOrCreateTOCEntry(const MCSymbol *Sym, TOCEntryType Type,
 
 void PPCAsmPrinter::LowerSTACKMAP(StackMaps &SM, const MachineInstr &MI) {
   unsigned NumNOPBytes = MI.getOperand(1).getImm();
-  
+
   auto &Ctx = OutStreamer->getContext();
   MCSymbol *MILabel = Ctx.createTempSymbol();
   OutStreamer->emitLabel(MILabel);
@@ -3269,7 +3228,7 @@ void PPCAIXAsmPrinter::emitInstruction(const MachineInstr *MI) {
   case PPC::TD:
   case PPC::TDI: {
     if (MI->getNumOperands() < 5)
-      break; 
+      break;
     const MachineOperand &LangMO = MI->getOperand(3);
     const MachineOperand &ReasonMO = MI->getOperand(4);
     if (!LangMO.isImm() || !ReasonMO.isImm())
@@ -3446,10 +3405,7 @@ createPPCAsmPrinterPass(TargetMachine &tm,
                         std::unique_ptr<MCStreamer> &&Streamer) {
   if (tm.getTargetTriple().isOSAIX())
     return new PPCAIXAsmPrinter(tm, std::move(Streamer));
-  else if (tm.getTargetTriple().isOSXbox360())
-    return new PPCXbox360AsmPrinter(tm, std::move(Streamer));
-
-  if (tm.getTargetTriple().isXbox360())
+  else if (tm.getTargetTriple().isXbox360())
     return new PPCXbox360AsmPrinter(tm, std::move(Streamer));
 
   return new PPCLinuxAsmPrinter(tm, std::move(Streamer));
@@ -3588,4 +3544,6 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializePowerPCAsmPrinter() {
                                      createPPCAsmPrinterPass);
   TargetRegistry::RegisterAsmPrinter(getThePPC64LETarget(),
                                      createPPCAsmPrinterPass);
+}
+
 }

@@ -1098,6 +1098,8 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
   // save is required for the function.
   if (MustSaveTOC) {
     assert(isELFv2ABI && "TOC saves in the prologue only supported on ELFv2");
+
+    Register TOCReg = isPPC64 ? PPC::X2 : PPC::R2;
     BuildMI(MBB, StackUpdateLoc, dl, TII.get(PPC::STD))
       .addReg(TOCReg, getKillRegState(true))
       .addImm(TOCSaveOffset)

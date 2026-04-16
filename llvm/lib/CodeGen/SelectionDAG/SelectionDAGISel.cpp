@@ -3635,7 +3635,7 @@ void SelectionDAGISel::SelectCodeCommon(SDNode *NodeToMatch,
         VT = getSimpleVT(MatcherTable, MatcherIndex);
         break;
       }
-      if (!::CheckType(VT.SimpleTy, N, TLI, CurDAG->getDataLayout())) {
+      if (!::CheckType(VT, N, TLI, CurDAG->getDataLayout())) {
         LLVM_DEBUG(dbgs() << "SelectCommonCode: OPC_CheckType: ");
         MVT(VT).dump();
         N.dump();

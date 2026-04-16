@@ -45,7 +45,6 @@ PPCRegisterBankInfo::getRegBankFromRegClass(const TargetRegisterClass &RC,
   case PPC::VSRCRegClassID:
   case PPC::VRRCRegClassID:
   case PPC::VR128RCRegClassID:
-  case PPC::VRRC_with_sub_64_in_SPILLTOVSRRCRegClassID:
   case PPC::VSRC_with_sub_64_in_SPILLTOVSRRCRegClassID:
   case PPC::SPILLTOVSRRCRegClassID:
   case PPC::VSLRCRegClassID:

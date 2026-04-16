@@ -144,11 +144,6 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializePowerPCTarget() {
   initializeGlobalISel(PR);
   initializePPCCTRLoopsPass(PR);
   initializePPCDAGToDAGISelLegacyPass(PR);
-  initializePPCPrepareIFuncsOnAIXPass(PR);
-  initializePPCLinuxAsmPrinterPass(PR);
-  initializePPCAIXAsmPrinterPass(PR);
-  initializePPCDAGToDAGISelPass(PR);
-  initializePPCMergeStringPoolPass(PR);
 }
 
 static bool isLittleEndianTriple(const Triple &T) {
@@ -179,7 +174,7 @@ static std::string getDataLayoutString(const Triple &T) {
   // If the target ABI uses function descriptors, then the alignment of function
   // pointers depends on the alignment used to emit the descriptor. Otherwise,
   // function pointers are aligned to 32 bits because the instructions must be.
-  if (T.isOSXbox360()) {
+  if (T.isXbox360()) {
     Ret += "-Fi32";
   } else if (T.getArch() == Triple::ppc64 && !T.isPPC64ELFv2ABI()) {
     Ret += "-Fi64";
@@ -199,7 +194,7 @@ static std::string getDataLayoutString(const Triple &T) {
   else
     Ret += "-n32";
 
-  if(T.isOSXbox360())
+  if(T.isXbox360())
     Ret += "-v128:128";
 
   // Specify the vector alignment explicitly. For v256i1 and v512i1, the
@@ -249,7 +244,7 @@ static std::string computeFSAdditions(StringRef FS, CodeGenOptLevel OL,
 static std::unique_ptr<TargetLoweringObjectFile> createTLOF(const Triple &TT) {
   if (TT.isOSAIX())
     return std::make_unique<TargetLoweringObjectFileXCOFF>();
-  if (TT.isOSXbox360())
+  if (TT.isXbox360())
     return std::make_unique<TargetLoweringObjectFileCOFF>();
 
   if (TT.isXbox360())
@@ -315,7 +310,7 @@ getEffectivePPCCodeModel(const Triple &TT, std::optional<CodeModel::Model> CM,
     return CodeModel::Small;
   if (TT.isOSAIX())
     return CodeModel::Small;
-  if (TT.isOSXbox360())
+  if (TT.isXbox360())
     return CodeModel::Medium; // Not sure if this is correct
 
   if (TT.isXbox360())

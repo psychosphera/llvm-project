@@ -26,7 +26,7 @@ public:
 } // namespace
 
 MCStreamer *llvm::createMipsWinCOFFStreamer(
-    MCContext &C, std::unique_ptr<MCAsmBackend> &&AB,
+    const Triple &T, MCContext &C, std::unique_ptr<MCAsmBackend> &&AB,
     std::unique_ptr<MCObjectWriter> &&OW, std::unique_ptr<MCCodeEmitter> &&CE) {
   return new MipsWinCOFFStreamer(C, std::move(AB), std::move(CE),
                                  std::move(OW));

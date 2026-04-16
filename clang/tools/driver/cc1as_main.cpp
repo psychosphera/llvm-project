@@ -575,7 +575,8 @@ static bool ExecuteAssemblerImpl(AssemblerInvocation &Opts,
 
     Triple T(Opts.Triple);
     Str.reset(TheTarget->createMCObjectStreamer(
-        T, Ctx, std::move(MAB), std::move(OW), std::move(CE), *STI));
+        T, Ctx, std::move(MAB), std::move(OW),
+        std::move(CE), *STI, false, false, false));
     Str.get()->initSections(Opts.NoExecStack, *STI);
     if (T.isOSBinFormatMachO() && T.isOSDarwin()) {
       Triple *TVT = Opts.DarwinTargetVariantTriple

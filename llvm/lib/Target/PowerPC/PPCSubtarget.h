@@ -221,7 +221,7 @@ public:
   bool isTargetELF() const { return getTargetTriple().isOSBinFormatELF(); }
   bool isTargetMachO() const { return getTargetTriple().isOSBinFormatMachO(); }
   bool isTargetLinux() const { return getTargetTriple().isOSLinux(); }
-  bool isTargetXbox360() const { return TargetTriple.isOSXbox360(); }
+  bool isTargetXbox360() const { return TargetTriple.isXbox360(); }
 
   bool isAIXABI() const { return TargetTriple.isOSAIX(); }
   bool isSVR4ABI() const { return !isAIXABI(); }

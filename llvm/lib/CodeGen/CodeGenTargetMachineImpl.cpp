@@ -195,7 +195,7 @@ CodeGenTargetMachineImpl::createMCStreamer(raw_pwrite_stream &Out,
         T, Context, std::unique_ptr<MCAsmBackend>(MAB),
         DwoOut ? MAB->createDwoObjectWriter(Out, *DwoOut)
                : MAB->createObjectWriter(Out),
-        std::unique_ptr<MCCodeEmitter>(MCE), STI));
+        std::unique_ptr<MCCodeEmitter>(MCE), STI, false, false, false));
     break;
   }
   case CodeGenFileType::Null:
@@ -272,7 +272,7 @@ bool CodeGenTargetMachineImpl::addPassesToEmitMC(PassManagerBase &PM,
   const Triple &T = getTargetTriple();
   std::unique_ptr<MCStreamer> AsmStreamer(getTarget().createMCObjectStreamer(
       T, *Ctx, std::unique_ptr<MCAsmBackend>(MAB), MAB->createObjectWriter(Out),
-      std::move(MCE), STI));
+      std::move(MCE), STI, false, false, false));
 
   // Create the AsmPrinter, which takes ownership of AsmStreamer if successful.
   FunctionPass *Printer =

@@ -57,14 +57,14 @@ class SPR<bits<10> num, string n> : PPCReg<n> {
 }
 
 // FPR - One of the 32 64-bit floating-point registers
-class FPR<bits<5> num, string n> : PPCReg<n> {
-  let HWEncoding{4-0} = num;
+class FPR<bits<7> num, string n> : PPCReg<n> {
+  let HWEncoding{6-0} = num;
 }
 
 // FPPair - A pair of 64-bit floating-point registers.
-class FPPair<string n, bits<5> EvenIndex> : PPCReg<n> {
+class FPPair<string n, bits<7> EvenIndex> : PPCReg<n> {
   assert !eq(EvenIndex{0}, 0), "Index should be even.";
-  let HWEncoding{4-0} = EvenIndex;
+  let HWEncoding{6-0} = EvenIndex;
   let SubRegs = [!cast<FPR>("F"#EvenIndex), !cast<FPR>("F"#!add(EvenIndex, 1))];
   let DwarfNumbers = [-1, -1];
   let SubRegIndices = [sub_fp0, sub_fp1];
@@ -72,22 +72,17 @@ class FPPair<string n, bits<5> EvenIndex> : PPCReg<n> {
 
 // VF - One of the 32 64-bit floating-point subregisters of the vector
 // registers (used by VSX).
-class VF<bits<5> num, string n> : PPCReg<n> {
-  let HWEncoding{4-0} = num;
-  let HWEncoding{5} = 1;
+class VF<bits<7> num, string n> : PPCReg<n> {
+  let HWEncoding{6-0} = num;
+  let HWEncoding{7} = 1;
 }
 
-// VR - One of the 32 128-bit vector registers
+// VR - One of the 128 128-bit vector registers
 class VR<VF SubReg, VF SubRegH, string n> : PPCReg<n> {
-  let HWEncoding{4-0} = SubReg.HWEncoding{4-0};
-  let HWEncoding{5} = 0;
+  let HWEncoding{6-0} = SubReg.HWEncoding{6-0};
+  let HWEncoding{7} = 0;
   let SubRegs = [SubReg, SubRegH];
   let SubRegIndices = [sub_64, sub_64_hi_phony];
-}
-
-// VR128 - One of the other 96 128-bit vector registers
-class VR128<bits<7> num, string n> : PPCReg<n> {
-  let HWEncoding{6-0} = num;
 }
 
 // VSRL - One of the 32 128-bit VSX registers that overlap with the scalar
@@ -100,8 +95,8 @@ class VSRL<FPR SubReg, FPR SubRegH, string n> : PPCReg<n> {
 
 // VSXReg - One of the VSX registers in the range vs32-vs63 with numbering
 // and encoding to match.
-class VSXReg<bits<6> num, string n> : PPCReg<n> {
-  let HWEncoding{5-0} = num;
+class VSXReg<bits<7> num, string n> : PPCReg<n> {
+  let HWEncoding{6-0} = num;
 }
 
 // CR - One of the 8 4-bit condition registers
@@ -156,7 +151,7 @@ foreach Index = 0-31 in {
 
 
 // Floating-point registers
-foreach Index = 0-31 in {
+foreach Index = 0-127 in {
   def F#Index : FPR<Index, "f"#Index>,
                 DwarfRegNum<[!add(Index, 32), !add(Index, 32)]>;
 }
@@ -166,7 +161,7 @@ foreach Index = 0-31 in {
 // in order to ensure that the super registers (V and VSL) are covered by their
 // subregisters and have correct subregister lane masks.
 let isArtificial = 1 in {
-  foreach Index = 0-31 in {
+  foreach Index = 0-127 in {
     def FH#Index : FPR<-1, "">;
     def VFH#Index : VF<-1, "">;
   }
@@ -185,25 +180,23 @@ foreach Index = { 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30 } in
 // 64-bit Floating-point subregisters of Altivec registers
 // Note: the register names are v0-v31 or vs32-vs63 depending on the use.
 //       Custom C++ code is used to produce the correct name and encoding.
-foreach Index = 0-31 in {
+foreach Index = 0-127 in {
   def VF#Index : VF<Index, "v" #Index>,
                  DwarfRegNum<[!add(Index, 77), !add(Index, 77)]>;
 }
 
+let CoveredBySubRegs = 1 in {
 // Vector registers
-foreach Index = 0-31 in {
-  def V#Index : VR<!cast<VF>("VF"#Index), "v"#Index>,
-                DwarfRegNum<[!add(Index, 77), !add(Index, 77)]>;
-}
-foreach Index = 32-127 in {
-  def V#Index : VR128<Index, "v" #Index>,
+foreach Index = 0-127 in {
+  def V#Index : VR<!cast<VF>("VF"#Index), !cast<VF>("VFH"#Index), "v"#Index>,
                 DwarfRegNum<[!add(Index, 77), !add(Index, 77)]>;
 }
 
 // VSX registers
 foreach Index = 0-31 in {
-  def VSL#Index : VSRL<!cast<FPR>("F"#Index), "vs"#Index>,
+  def VSL#Index : VSRL<!cast<FPR>("F"#Index), !cast<FPR>("FH"#Index), "vs"#Index>,
                   DwarfRegAlias<!cast<FPR>("F"#Index)>;
+}
 }
 
 // Dummy VSX registers, this defines string: "vs32"-"vs63", and is only used for
@@ -552,7 +545,6 @@ include "PPCRegisterInfoDMR.td"
 // For this purpose, we define one RegisterOperand for each RegisterClass,
 // using the same name as the class, just in lower case.
 
-=======
 def PPCRegGPRCAsmOperand : AsmOperandClass {
   let Name = "RegGPRC"; let PredicateMethod = "isRegNumber";
 }

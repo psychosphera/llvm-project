@@ -72,6 +72,12 @@ static void add64(uint8_t *p, int64_t v) { write64le(p, read64le(p) + v); }
 static void or16(uint8_t *p, uint16_t v) { write16le(p, read16le(p) | v); }
 static void or32(uint8_t *p, uint32_t v) { write32le(p, read32le(p) | v); }
 
+static void add16be(uint8_t *p, int16_t v) { write16be(p, read16be(p) + v); }
+static void add32be(uint8_t *p, int32_t v) { write32be(p, read32be(p) + v); }
+static void add64be(uint8_t *p, int64_t v) { write64be(p, read64be(p) + v); }
+static void or16be(uint8_t *p, uint16_t v) { write16be(p, read16be(p) | v); }
+static void or32be(uint8_t *p, uint32_t v) { write32be(p, read32be(p) | v); }
+
 // Verify that given sections are appropriate targets for SECREL
 // relocations. This check is relaxed because unfortunately debug
 // sections have section-relative relocations against absolute symbols.
@@ -121,13 +127,13 @@ void SectionChunk::applyRelX64(uint8_t *off, uint16_t type, OutputSection *os,
   case IMAGE_REL_AMD64_ADDR64:
     add64(off, s + imageBase);
     break;
-  case IMAGE_REL_AMD64_ADDR32NB: add32(off, s); break;
-  case IMAGE_REL_AMD64_REL32:    add32(off, s - p - 4); break;
-  case IMAGE_REL_AMD64_REL32_1:  add32(off, s - p - 5); break;
-  case IMAGE_REL_AMD64_REL32_2:  add32(off, s - p - 6); break;
-  case IMAGE_REL_AMD64_REL32_3:  add32(off, s - p - 7); break;
-  case IMAGE_REL_AMD64_REL32_4:  add32(off, s - p - 8); break;
-  case IMAGE_REL_AMD64_REL32_5:  add32(off, s - p - 9); break;
+  case IMAGE_REL_AMD64_ADDR32NB: add32be(off, s); break;
+  case IMAGE_REL_AMD64_REL32:    add32be(off, s - p - 4); break;
+  case IMAGE_REL_AMD64_REL32_1:  add32be(off, s - p - 5); break;
+  case IMAGE_REL_AMD64_REL32_2:  add32be(off, s - p - 6); break;
+  case IMAGE_REL_AMD64_REL32_3:  add32be(off, s - p - 7); break;
+  case IMAGE_REL_AMD64_REL32_4:  add32be(off, s - p - 8); break;
+  case IMAGE_REL_AMD64_REL32_5:  add32be(off, s - p - 9); break;
   case IMAGE_REL_AMD64_SECTION:
     applySecIdx(off, os, file->symtab.ctx.outputSections.size());
     break;
@@ -183,6 +189,39 @@ void applyMOV32T(uint8_t *off, uint32_t v) {
   v += imm;                         // add the immediate offset
   applyMOV(off, v);           // set MOVW operand
   applyMOV(off + 4, v >> 16); // set MOVT operand
+}
+
+static uint16_t readADDIS(uint8_t *off) {
+  uint16_t op = read16be(off);
+  if (op != 0x3d8c)
+    error("unexpected instruction in ADDIS relocation");
+
+  return read16be(off + 2);
+}
+
+static uint16_t readLWZ(uint8_t *off) {
+  uint16_t op = read16be(off);
+  if (op != 0x818c)
+    error("unexpected instruction in LWZ relocation");
+
+  return read16be(off + 2);
+}
+
+static void applyADDIS(uint8_t *off, uint16_t v) {
+  write32be(off, (read32be(off) & 0xffff0000) | v);
+}
+
+static void applyLWZ(uint8_t *off, uint16_t v) {
+  write32be(off, (read32be(off) & 0xffff0000) | v);
+}
+
+void applyADDIS_LWZ(uint8_t *off, uint32_t v) {
+  uint16_t immH = readADDIS(off);   // read ADDIS operand (high 16 bits)
+  uint16_t immL = readLWZ(off + 4); // read LWZ operand (low 16 bits)
+  uint32_t imm = (immH << 16) | immL;
+  v += imm;                         // add the immediate offset
+  applyADDIS(off, v >> 16);         // set ADDIS operand (high 16 bits)
+  applyLWZ(off + 4, v);             // set LWZ operand (low 16 bits)
 }
 
 static void applyBranch20T(uint8_t *off, int32_t v) {
@@ -355,6 +394,41 @@ void SectionChunk::applyRelARM64(uint8_t *off, uint16_t type, OutputSection *os,
   }
 }
 
+void SectionChunk::applyRelPPC(uint8_t *off, uint16_t type, OutputSection *os,
+                               uint64_t s, uint64_t p,
+                               uint64_t imageBase) const {
+  switch (type) {
+  case IMAGE_REL_PPC_ADDR14:
+    add16(off, s + imageBase);
+    break;
+  case IMAGE_REL_PPC_ADDR16:
+    add16(off, s + imageBase);
+    break;
+  case IMAGE_REL_PPC_ADDR24:
+    add32(off, s + imageBase);
+    break;
+  case IMAGE_REL_PPC_ADDR32:
+    add32(off, s + imageBase);
+    break;
+  case IMAGE_REL_PPC_ADDR64:
+    add64(off, s + imageBase);
+    break;
+  case IMAGE_REL_PPC_ADDR32NB: add32(off, s); break;
+  case IMAGE_REL_PPC_REL24:    add32(off, s - p - 4); break;
+  case IMAGE_REL_PPC_REL14:    add16(off, s - p - 4); break;
+  case IMAGE_REL_PPC_SECTION:
+    applySecIdx(off, os, file->symtab.ctx.outputSections.size());
+    break;
+  case IMAGE_REL_PPC_SECREL:
+  case IMAGE_REL_PPC_SECREL16:
+    applySecRel(this, off, os, s);
+    break;
+  default:
+    error("unsupported relocation type 0x" + Twine::utohexstr(type) + " in " +
+          toString(file));
+  }
+}
+
 static void maybeReportRelocationToDiscarded(const SectionChunk *fromChunk,
                                              Defined *sym,
                                              const coff_relocation &rel,
@@ -458,6 +532,9 @@ void SectionChunk::applyRelocation(uint8_t *off,
     break;
   case Triple::aarch64:
     applyRelARM64(off, rel.Type, os, s, p, imageBase);
+    break;
+  case Triple::ppc:
+    applyRelPPC(off, rel.Type, os, s, p, imageBase);
     break;
   default:
     llvm_unreachable("unknown machine type");
@@ -833,6 +910,11 @@ void ImportThunkChunkARM64::writeTo(uint8_t *buf) const {
   memcpy(buf, importThunkARM64, sizeof(importThunkARM64));
   applyArm64Addr(buf, impSymbol->getRVA(), rva, 12);
   applyArm64Ldr(buf + 4, off);
+}
+
+void ImportThunkChunkPPCBE::writeTo(uint8_t *buf) const {
+  memcpy(buf, importThunkPPCBE, sizeof(importThunkPPCBE));
+  applyADDIS_LWZ(buf, impSymbol->getRVA() + ctx.config.imageBase);
 }
 
 // A Thumb2, PIC, non-interworking range extension thunk.

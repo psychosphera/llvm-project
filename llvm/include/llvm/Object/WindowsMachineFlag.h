@@ -28,7 +28,7 @@ enum MachineTypes : unsigned;
 StringRef machineToStr(COFF::MachineTypes MT);
 
 // Maps /machine: arguments to a MachineTypes value.
-// Only returns ARMNT, ARM64, AMD64, I386, or IMAGE_FILE_MACHINE_UNKNOWN.
+// Only returns ARMNT, ARM64, AMD64, I386, PPCBE, or IMAGE_FILE_MACHINE_UNKNOWN.
 COFF::MachineTypes getMachineType(StringRef S);
 
 template <typename T> Triple::ArchType getMachineArchType(T machine) {
@@ -45,6 +45,8 @@ template <typename T> Triple::ArchType getMachineArchType(T machine) {
     return llvm::Triple::ArchType::aarch64;
   case COFF::IMAGE_FILE_MACHINE_R4000:
     return llvm::Triple::ArchType::mipsel;
+  case COFF::IMAGE_FILE_MACHINE_PPCBE:
+    return llvm::Triple::ArchType::ppc64;
   default:
     return llvm::Triple::ArchType::UnknownArch;
   }

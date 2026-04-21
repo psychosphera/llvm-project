@@ -202,6 +202,7 @@ file_magic llvm::identify_magic(StringRef Magic) {
     break;
   }
   case 0xF0: // PowerPC Windows
+  case 0xF2: // PowerPC Windows Big
   case 0x83: // Alpha 32-bit
   case 0x84: // Alpha 64-bit
   case 0x66: // MPS R4000 Windows

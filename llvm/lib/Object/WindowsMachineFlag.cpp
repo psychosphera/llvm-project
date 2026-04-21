@@ -16,6 +16,7 @@
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/COFF.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/Debug.h"
 
 using namespace llvm;
 
@@ -30,6 +31,7 @@ COFF::MachineTypes llvm::getMachineType(StringRef S) {
       .Case("arm64ec", COFF::IMAGE_FILE_MACHINE_ARM64EC)
       .Case("arm64x", COFF::IMAGE_FILE_MACHINE_ARM64X)
       .Case("mips", COFF::IMAGE_FILE_MACHINE_R4000)
+      .Case("ppcbe", COFF::IMAGE_FILE_MACHINE_PPCBE)
       .Default(COFF::IMAGE_FILE_MACHINE_UNKNOWN);
 }
 
@@ -47,6 +49,8 @@ StringRef llvm::machineToStr(COFF::MachineTypes MT) {
     return "x64";
   case COFF::IMAGE_FILE_MACHINE_I386:
     return "x86";
+  case COFF::IMAGE_FILE_MACHINE_PPCBE:
+    return "ppcbe";
   default:
     llvm_unreachable("unknown machine type");
   }

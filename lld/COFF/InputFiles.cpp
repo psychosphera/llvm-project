@@ -1148,6 +1148,8 @@ ImportThunkChunk *ImportFile::makeImportThunk() {
     return make<ImportThunkChunkARM64>(symtab.ctx, impSym, ARM64);
   case ARMNT:
     return make<ImportThunkChunkARM>(symtab.ctx, impSym);
+  case PPCBE:
+    return make<ImportThunkChunkPPCBE>(symtab.ctx, impSym);
   }
   llvm_unreachable("unknown machine type");
 }

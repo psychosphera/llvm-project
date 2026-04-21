@@ -303,11 +303,10 @@ void WinCOFFWriter::defineSection(const MCAssembler &Asm,
   // Create a COMDAT symbol if needed.
   if (MCSec.getSelection() != COFF::IMAGE_COMDAT_SELECT_ASSOCIATIVE) {
     if (const MCSymbol *S = MCSec.getCOMDATSymbol()) {
-      // FIXME: Segfaulting for PPC64. Fix and uncomment.
-      //COFFSymbol *COMDATSymbol = GetOrCreateCOFFSymbol(S);
-      //if (COMDATSymbol->Section)
-      //  report_fatal_error("two sections have the same comdat");
-      //COMDATSymbol->Section = Section;
+      COFFSymbol *COMDATSymbol = GetOrCreateCOFFSymbol(S);
+      if (COMDATSymbol->Section)
+       report_fatal_error("two sections have the same comdat");
+      COMDATSymbol->Section = Section;
     }
   }
 

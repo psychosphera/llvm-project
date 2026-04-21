@@ -49,6 +49,8 @@ StringRef COFFImportFile::getFileFormatName() const {
     return "COFF-import-file-ARM64EC";
   case COFF::IMAGE_FILE_MACHINE_ARM64X:
     return "COFF-import-file-ARM64X";
+  case COFF::IMAGE_FILE_MACHINE_PPCBE:
+    return "COFF-import-file-PPCBE";
   default:
     return "COFF-import-file-<unknown arch>";
   }
@@ -135,6 +137,8 @@ static uint16_t getImgRelRelocation(MachineTypes Machine) {
     return IMAGE_REL_I386_DIR32NB;
   case IMAGE_FILE_MACHINE_R4000:
     return IMAGE_REL_MIPS_REFWORDNB;
+  case IMAGE_FILE_MACHINE_PPCBE:
+    return IMAGE_REL_PPC_ADDR32NB;
   }
 }
 

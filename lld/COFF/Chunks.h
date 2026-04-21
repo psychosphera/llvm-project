@@ -281,6 +281,8 @@ public:
                    uint64_t p, uint64_t imageBase) const;
   void applyRelARM64(uint8_t *off, uint16_t type, OutputSection *os, uint64_t s,
                      uint64_t p, uint64_t imageBase) const;
+  void applyRelPPC(uint8_t *off, uint16_t type, OutputSection *os, uint64_t s,
+                     uint64_t p, uint64_t imageBase) const;
 
   void getRuntimePseudoRelocs(std::vector<RuntimePseudoReloc> &res);
 
@@ -559,6 +561,13 @@ static const uint8_t importThunkARM64EC[] = {
     0x00, 0x00, 0x00, 0x14  // b    0x0
 };
 
+static const uint8_t importThunkPPCBE[] = {
+    0x3d, 0x8c, 0x00, 0x00, // addis r12, r12, 0
+    0x81, 0x8c, 0x00, 0x00, // lwz r12, 0(r12)
+    0x7d, 0x89, 0x03, 0xa6, // mtctr r12
+    0x4e, 0x80, 0x04, 0x20, // bctr
+};
+
 // Windows-specific.
 // A chunk for DLL import jump table entry. In a final output, its
 // contents will be a JMP instruction to some __imp_ symbol.
@@ -619,6 +628,17 @@ public:
 
 private:
   MachineTypes machine;
+};
+
+class ImportThunkChunkPPCBE : public ImportThunkChunk {
+public:
+  explicit ImportThunkChunkPPCBE(COFFLinkerContext &ctx, Defined *s)
+      : ImportThunkChunk(ctx, s) {
+    setAlignment(4);
+  }
+  size_t getSize() const override { return sizeof(importThunkPPCBE); }
+  void writeTo(uint8_t *buf) const override;
+  MachineTypes getMachine() const override { return PPCBE; }
 };
 
 // ARM64EC __impchk_* thunk implementation.

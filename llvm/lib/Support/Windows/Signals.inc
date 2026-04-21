@@ -230,6 +230,8 @@ enum {
   NativeMachineType = IMAGE_FILE_MACHINE_I386
 #elif defined(_M_ARM)
   NativeMachineType = IMAGE_FILE_MACHINE_ARMNT
+#elif defined(_M_PPCBE)
+  NativeMachineType = IMAGE_FILE_MACHINE_PPCBE
 #else
   NativeMachineType = IMAGE_FILE_MACHINE_UNKNOWN
 #endif

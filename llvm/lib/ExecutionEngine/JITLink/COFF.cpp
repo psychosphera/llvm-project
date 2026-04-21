@@ -34,6 +34,8 @@ static StringRef getMachineName(uint16_t Machine) {
     return "ARM";
   case COFF::IMAGE_FILE_MACHINE_ARM64:
     return "ARM64";
+  case COFF::IMAGE_FILE_MACHINE_PPCBE:
+    return "PPCBE";
   default:
     return "unknown";
   }

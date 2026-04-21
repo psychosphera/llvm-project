@@ -1681,13 +1681,6 @@ void PPCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                bool RenamableDest, bool RenamableSrc) const {
   // We can end up with self copies and similar things as a result of VSX copy
   // legalization. Promote them here.
-
-  // FIXME: this absolutely should not be necessary and may be (probably is) wrong, but it at least allows codegen to complete successfully
-  if(SrcReg.id() >= PPC::R0 && SrcReg.id() <= PPC::R31 && DestReg.id() >= PPC::X0 && DestReg.id() <= PPC::X31 && Subtarget.isTargetXbox360()) 
-    DestReg = MCRegister(DestReg - (PPC::X0 - PPC::R0));
-  if(DestReg.id() >= PPC::R0 && DestReg.id() <= PPC::R31 && SrcReg.id() >= PPC::X0 && SrcReg.id() <= PPC::X31 && Subtarget.isTargetXbox360()) 
-    SrcReg = MCRegister(SrcReg - (PPC::X0 - PPC::R0));
-    
   const TargetRegisterInfo *TRI = &getRegisterInfo();
   if (PPC::F8RCRegClass.contains(DestReg) &&
       PPC::VSRCRegClass.contains(SrcReg)) {
@@ -1707,6 +1700,24 @@ void PPCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
       llvm_unreachable("nop VSX copy");
 
     SrcReg = SuperReg;
+  }
+
+  if (PPC::G8RCRegClass.contains(DestReg) &&
+      PPC::GPRCRegClass.contains(SrcReg)) {
+    MCRegister SuperReg =
+        TRI->getMatchingSuperReg(SrcReg, PPC::sub_32, &PPC::G8RCRegClass);
+    if (SuperReg == 0)
+        llvm_unreachable("No matching SuperReg for DestReg");
+
+    SrcReg = SuperReg;
+  } else if (PPC::G8RCRegClass.contains(SrcReg) &&
+             PPC::GPRCRegClass.contains(DestReg)) {
+    MCRegister SuperReg =
+        TRI->getMatchingSuperReg(DestReg, PPC::sub_32, &PPC::G8RCRegClass);
+    if (SuperReg == 0)
+        llvm_unreachable("No matching SuperReg for DestReg");
+
+    DestReg = SuperReg;
   }
 
   // Different class register copy

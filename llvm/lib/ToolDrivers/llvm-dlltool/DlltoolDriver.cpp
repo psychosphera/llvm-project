@@ -80,6 +80,7 @@ MachineTypes getEmulation(StringRef S) {
       .Case("arm64", IMAGE_FILE_MACHINE_ARM64)
       .Case("arm64ec", IMAGE_FILE_MACHINE_ARM64EC)
       .Case("r4000", IMAGE_FILE_MACHINE_R4000)
+      .Case("ppcbe", IMAGE_FILE_MACHINE_PPCBE)
       .Default(IMAGE_FILE_MACHINE_UNKNOWN);
 }
 
@@ -96,6 +97,8 @@ MachineTypes getMachine(Triple T) {
                                 : COFF::IMAGE_FILE_MACHINE_ARM64;
   case Triple::mipsel:
     return COFF::IMAGE_FILE_MACHINE_R4000;
+  case Triple::ppc64:
+    return COFF::IMAGE_FILE_MACHINE_PPCBE;
   default:
     return COFF::IMAGE_FILE_MACHINE_UNKNOWN;
   }

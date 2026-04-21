@@ -1750,7 +1750,10 @@ static uint32_t getSecrelReloc(Triple::ArchType arch) {
     return COFF::IMAGE_REL_ARM_SECREL;
   case Triple::aarch64:
     return COFF::IMAGE_REL_ARM64_SECREL;
+  case Triple::ppc64:
+    return COFF::IMAGE_REL_PPC_SECREL;
   default:
+    dbgs() << "machine type " << arch << " is not supported\n";
     llvm_unreachable("unknown machine type");
   }
 }

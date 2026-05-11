@@ -19936,11 +19936,13 @@ PPC::AddrMode PPCTargetLowering::SelectOptimalAddrMode(const SDNode *Parent,
       // Handle 32-bit sext immediate with LIS + Addr mode.
       if ((CNType == MVT::i32 || isInt<32>(CNImm)) &&
           (!Align || isAligned(*Align, CNImm))) {
-        int32_t Addr = (int32_t)CNImm;
+        uint32_t Addr = (uint32_t)CNImm;
+        dbgs() << "SelectOptimalAddrMode: (int64_t)Addr=" << (int64_t)Addr << ", (int16_t)Addr=" << (int16_t)Addr << ", (Addr - (int16_t)Addr) >> 16=" << (((int64_t)Addr - (int16_t)Addr) >> 16) << ", CNImm=" << CNImm << "\n";
+        dbgs() << "(uint64_t)Addr=" << (uint64_t)Addr << ", (uint16_t)Addr=" << (uint16_t)Addr << ", ((uint64_t)Addr - (uint16_t)Addr) >> 16=" << (((uint64_t)Addr - (uint16_t)Addr) >> 16) << "\n";
         // Otherwise, break this down into LIS + Disp.
         Disp = DAG.getSignedTargetConstant((int16_t)Addr, DL, MVT::i32);
         Base =
-            DAG.getTargetConstant((Addr - (int16_t)Addr) >> 16, DL, MVT::i32);
+            DAG.getTargetConstant(((uint64_t)Addr - (uint16_t)Addr) >> 16, DL, MVT::i32);
         uint32_t LIS = CNType == MVT::i32 ? PPC::LIS : PPC::LIS8;
         Base = SDValue(DAG.getMachineNode(LIS, DL, CNType, Base), 0);
         break;

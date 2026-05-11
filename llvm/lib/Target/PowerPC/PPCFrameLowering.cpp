@@ -43,32 +43,35 @@ EnablePEVectorSpills("ppc-enable-pe-vector-spills",
 static unsigned computeReturnSaveOffset(const PPCSubtarget &STI) {
   if (STI.isAIXABI())
     return STI.isPPC64() ? 16 : 8;
-  if (STI.isTargetXbox360()) 
+  if (STI.isTargetXbox360())
     return 8;
   // SVR4 ABI:
   return STI.isPPC64() ? 16 : 4;
 }
 
 static unsigned computeTOCSaveOffset(const PPCSubtarget &STI) {
-  // PPCFrameLowering's constructor calls this unconditionally, so 
+  // PPCFrameLowering's constructor calls this unconditionally, so
   // assert(!STI.isTargetXbox360()) isn't viable here. It's done in
   // PPCFrameLowering::getTOCSaveOffset instead.
-  if (STI.isTargetXbox360()) 
+  if (STI.isTargetXbox360())
     return 0;
+
   if (STI.isAIXABI())
     return STI.isPPC64() ? 40 : 20;
   return STI.isELFv2ABI() ? 24 : 40;
 }
 
 static unsigned computeFramePointerSaveOffset(const PPCSubtarget &STI) {
-  // First slot in the general register save area.
+  // TODO: is this correct for?
   if (STI.isTargetXbox360())
-    return -16U;
+    return 0;
+
+  // First slot in the general register save area.
   return STI.isPPC64() ? -8U : -4U;
 }
 
 static unsigned computeLinkageSize(const PPCSubtarget &STI) {
-  if (STI.isTargetXbox360()) 
+  if (STI.isTargetXbox360())
     return 16;
 
   if ((STI.isAIXABI() || STI.isPPC64()))
@@ -84,13 +87,13 @@ static unsigned computeBasePointerSaveOffset(const PPCSubtarget &STI) {
     return -12U;
 
   if (STI.isTargetXbox360())
-    return -24U;
+    return -8U;
   // Second slot in the general purpose register save area.
   return STI.isPPC64() ? -16U : -8U;
 }
 
 static unsigned computeCRSaveOffset(const PPCSubtarget &STI) {
-  // PPCFrameLowering's constructor calls this unconditionally, so 
+  // PPCFrameLowering's constructor calls this unconditionally, so
   // assert(!STI.isTargetXbox360()) isn't viable here. It's done in
   // PPCFrameLowering::getCRSaveOffset instead.
   if (STI.isTargetXbox360())
@@ -257,8 +260,8 @@ const PPCFrameLowering::SpillSlot *PPCFrameLowering::getCalleeSavedSpillSlots(
       {PPC::V67,  -976},  \
       {PPC::V66,  -992},  \
       {PPC::V65,  -1008}, \
-      {PPC::V64,  -1024} 
-      
+      {PPC::V64,  -1024}
+
 
   // Note that the offsets here overlap, but this is fixed up in
   // processFunctionBeforeFrameFinalized.
@@ -412,7 +415,7 @@ PPCFrameLowering::determineFrameLayout(const MachineFunction &MF,
   unsigned LR = RegInfo->getRARegister();
   bool DisableRedZone = MF.getFunction().hasFnAttribute(Attribute::NoRedZone);
   dbgs() << "determineFrameLayout: MF.getName()=" << MF.getName() << "\n";
-  
+
   bool CanUseRedZone = !MFI.hasVarSizedObjects() && // No dynamic alloca.
                        !MFI.adjustsStack() &&       // No calls.
                        !MustSaveLR(MF, LR) &&       // No need to save LR.
@@ -795,7 +798,7 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
       &MBB, false, twoUniqueScratchRegsRequired(&MBB), isXbox360 ? &TempReg : &ScratchReg, isXbox360 ? &ScratchReg : &TempReg);
   assert(SingleScratchReg &&
          "Required number of registers not available in this block");
-  
+
   SingleScratchReg = ScratchReg == TempReg;
   dbgs() << "SingleScratchReg=" << SingleScratchReg << " (ScratchReg=" << ScratchReg << ", TempReg=" << TempReg << ")\n";
 

@@ -22,7 +22,7 @@ static cl::opt<bool> PPCDisableNonVolatileCR(
 void PPCFunctionInfo::anchor() {}
 PPCFunctionInfo::PPCFunctionInfo(const Function &F,
                                  const TargetSubtargetInfo *STI)
-    : DisableNonVolatileCR(PPCDisableNonVolatileCR) {}
+    : DisableNonVolatileCR(PPCDisableNonVolatileCR), STI(*STI) {}
 
 MachineFunctionInfo *
 PPCFunctionInfo::clone(BumpPtrAllocator &Allocator, MachineFunction &DestMF,

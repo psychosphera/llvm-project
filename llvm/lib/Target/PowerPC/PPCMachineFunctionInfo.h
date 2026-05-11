@@ -16,6 +16,8 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/TargetCallingConv.h"
+#include "llvm/CodeGen/TargetLowering.h"
+#include "llvm/Target/TargetMachine.h"
 
 namespace llvm {
 
@@ -150,6 +152,8 @@ private:
   /// to use SExt/ZExt flags in later optimization.
   std::vector<std::pair<Register, ISD::ArgFlagsTy>> LiveInAttrs;
 
+  const TargetSubtargetInfo &STI;
+
   /// Flags for aix-shared-lib-tls-model-opt, will be lazily initialized for
   /// each function.
   bool AIXFuncUseTLSIEForLD = false;
@@ -197,7 +201,11 @@ public:
   bool mustSaveLR() const    { return MustSaveLR; }
 
   void setMustSaveTOC(bool U) { MustSaveTOC = U; }
-  bool mustSaveTOC() const    { return MustSaveTOC; }
+  bool mustSaveTOC() const {
+      if (STI.getTargetLowering()->getTargetMachine().getTargetTriple().isXbox360())
+          return false;
+      return MustSaveTOC;
+  }
 
   /// We certainly don't want to shrink wrap functions if we've emitted a
   /// MovePCtoLR8 as that has to go into the entry, so the prologue definitely

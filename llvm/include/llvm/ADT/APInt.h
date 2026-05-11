@@ -16,6 +16,8 @@
 #define LLVM_ADT_APINT_H
 
 #include "llvm/Support/Compiler.h"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/float128.h"
 #include <cassert>
@@ -124,6 +126,7 @@ public:
         if (BitWidth == 0) {
           assert(val == 0 && "Value must be zero for unsigned 0-bit APInt");
         } else {
+          dbgs() << "APInt: val=" << val << " BitWidth=" << (int)BitWidth << "\n";
           assert(llvm::isUIntN(BitWidth, val) &&
                  "Value is not an N-bit unsigned value");
         }

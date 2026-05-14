@@ -1691,6 +1691,7 @@ enum class CodeGenFunction::MSVCIntrin {
   _InterlockedDecrement_rel,
   _InterlockedDecrement_nf,
   __fastfail,
+  __emit,
 };
 
 static std::optional<CodeGenFunction::MSVCIntrin>
@@ -2213,6 +2214,9 @@ Value *CodeGenFunction::EmitMSVCBuiltinExpr(MSVCIntrin BuiltinID,
     CI->setAttributes(NoReturnAttr);
     return CI;
   }
+
+  case MSVCIntrin::__emit:
+    return EmitScalarExpr(E->getArg(0));
   }
   llvm_unreachable("Incorrect MSVC intrinsic!");
 }
@@ -5827,6 +5831,8 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
 
   case Builtin::BI__fastfail:
     return RValue::get(EmitMSVCBuiltinExpr(MSVCIntrin::__fastfail, E));
+  case Builtin::BI__emit:
+    return RValue::get(EmitMSVCBuiltinExpr(MSVCIntrin::__emit, E));
 
   case Builtin::BI__builtin_coro_id:
     return EmitCoroutineIntrinsic(E, Intrinsic::coro_id);

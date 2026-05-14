@@ -5119,6 +5119,7 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
       (IsCuda || IsHIP) ? TC.getAuxTriple() : nullptr;
   bool IsWindowsMSVC = RawTriple.isWindowsMSVCEnvironment();
   bool IsUEFI = RawTriple.isUEFI();
+  bool IsXbox360 = RawTriple.isXbox360();
   bool IsIAMCU = RawTriple.isOSIAMCU();
 
   // Adjust IsWindowsXYZ for CUDA/HIP/SYCL compilations.  Even when compiling in
@@ -7263,7 +7264,7 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
 
   // -fms-extensions=0 is default.
   if (Args.hasFlag(options::OPT_fms_extensions, options::OPT_fno_ms_extensions,
-                   IsWindowsMSVC || IsUEFI))
+                   IsWindowsMSVC || IsUEFI || IsXbox360))
     CmdArgs.push_back("-fms-extensions");
 
   // -fms-compatibility=0 is default.
@@ -7276,6 +7277,11 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
     if (!types::isCXX(Input.getType()) &&
         Args.hasArg(options::OPT_fms_define_stdc))
       CmdArgs.push_back("-fms-define-stdc");
+  }
+
+  // imitate the behavior of -faltivec for Xbox 360.
+  if (IsXbox360) {
+    CmdArgs.push_back("-includealtivec.h");
   }
 
   if (Triple.isWindowsMSVCEnvironment() && !D.IsCLMode() &&

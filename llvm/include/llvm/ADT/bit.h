@@ -54,6 +54,8 @@
 #endif
 
 #ifdef _MSC_VER
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wlanguage-extension-token"
 // Declare these intrinsics manually rather including intrin.h. It's very
 // expensive, and bit.h is popular via MathExtras.h.
 // #include <intrin.h>
@@ -63,6 +65,7 @@ unsigned char _BitScanForward64(unsigned long *_Index, unsigned __int64 _Mask);
 unsigned char _BitScanReverse(unsigned long *_Index, unsigned long _Mask);
 unsigned char _BitScanReverse64(unsigned long *_Index, unsigned __int64 _Mask);
 }
+#pragma clang diagnostic pop
 #endif
 
 namespace llvm {

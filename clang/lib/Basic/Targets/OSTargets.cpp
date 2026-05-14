@@ -283,12 +283,7 @@ void addWindowsDefines(const llvm::Triple &Triple, const LangOptions &Opts,
   if (Triple.isXbox360()) {
     Builder.defineMacro("_XBOX");
     Builder.defineMacro("_XBOX_VER", "200");
-    Builder.defineMacro("__ALTIVEC__");
-    // FIXME: VMX128 is creating errors in codegen. Emit _XM_NO_INTRINSICS_
-    // instead until codegen is fixed.
-    //Builder.defineMacro("__VMX128_SUPPORTED");
-    //Builder.defineMacro("_XM_NO_INTRINSICS_");
-
+    Builder.defineMacro("__VMX128_SUPPORTED");
   }
 }
 

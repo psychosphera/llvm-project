@@ -567,6 +567,7 @@ void PPCInstrInfo::finalizeInsInstrs(
 
   // Put negative fp const into constant pool.
   unsigned ConstPoolIdx = MCP->getConstantPoolIndex(NegC, Alignment);
+  dbgs() << "PPCInstrInfo::finalizeInsInstrs: ConstPoolIdx=" << ConstPoolIdx << "\n";
 
   MachineOperand *Placeholder = nullptr;
   // Record the placeholder PPC::ZERO8 we add in reassociateFMA.

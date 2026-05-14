@@ -126,7 +126,6 @@ public:
         if (BitWidth == 0) {
           assert(val == 0 && "Value must be zero for unsigned 0-bit APInt");
         } else {
-          dbgs() << "APInt: val=" << val << " BitWidth=" << (int)BitWidth << "\n";
           assert(llvm::isUIntN(BitWidth, val) &&
                  "Value is not an N-bit unsigned value");
         }

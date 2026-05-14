@@ -294,7 +294,19 @@ XCOFFPPCAsmBackend::getFixupKind(StringRef Name) const {
 
 std::optional<MCFixupKind>
 WinCOFFPPCAsmBackend::getFixupKind(StringRef Name) const {
-  llvm_unreachable("");
+    dbgs() << "WinCOFFPPCAsmBackend::getFixupKind: Name=" << Name << "\n";
+  return StringSwitch<std::optional<MCFixupKind>>(Name)
+      .Case("IMAGE_REL_PPC_ABSOLUTE", FK_NONE)
+      .Case("IMAGE_REL_PPC_ADDR64", FK_Data_8)
+      .Case("IMAGE_REL_PPC_ADDR32", FK_Data_4)
+      .Case("IMAGE_REL_PPC_ADDR24", (MCFixupKind)PPC::fixup_ppc_br24abs)
+      .Case("IMAGE_REL_PPC_ADDR16", FK_Data_2)
+      .Case("IMAGE_REL_PPC_ADDR14", (MCFixupKind)PPC::fixup_ppc_brcond14abs)
+      .Case("IMAGE_REL_PPC_REL24", (MCFixupKind)PPC::fixup_ppc_br24_notoc)
+      .Case("IMAGE_REL_PPC_REL14", (MCFixupKind)PPC::fixup_ppc_brcond14)
+      .Case("IMAGE_REL_PPC_SECREL", FK_SecRel_4)
+      .Case("IMAGE_REL_PPC_SECREL16", FK_SecRel_2)
+      .Default(std::nullopt);
 }
 
 MCAsmBackend *llvm::createPPCAsmBackend(const Target &T,

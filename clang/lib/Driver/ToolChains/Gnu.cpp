@@ -748,9 +748,14 @@ void tools::gnutools::Assembler::ConstructJob(Compilation &C,
     break;
   }
   case llvm::Triple::ppc64: {
-    CmdArgs.push_back("-a64");
+    // if (getToolChain().getTriple().isXbox360())
+    //   CmdArgs.push_back("-a32");
+    // else
+      CmdArgs.push_back("-a64");
+
     CmdArgs.push_back("-mppc64");
     CmdArgs.push_back("-mbig-endian");
+    CmdArgs.push_back("-maltivec");
     CmdArgs.push_back(ppc::getPPCAsmModeForCPU(
         getCPUName(D, Args, getToolChain().getTriple())));
     break;

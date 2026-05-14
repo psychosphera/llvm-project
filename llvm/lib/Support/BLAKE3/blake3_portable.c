@@ -1,6 +1,9 @@
 #include "blake3_impl.h"
 #include <string.h>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wlanguage-extension-token"
+
 INLINE uint32_t rotr32(uint32_t w, uint32_t c) {
   return (w >> c) | (w << (32 - c));
 }
@@ -158,3 +161,5 @@ void blake3_hash_many_portable(const uint8_t *const *inputs, size_t num_inputs,
     out = &out[BLAKE3_OUT_LEN];
   }
 }
+
+#pragma clang diagnostic pop

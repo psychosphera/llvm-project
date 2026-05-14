@@ -773,8 +773,8 @@ void WinCOFFWriter::assignFileOffsets(MCAssembler &Asm) {
 
       for (auto &Relocation : Sec->Relocations) {
         assert(Relocation.Symb && Relocation.Symb->getIndex() != -1);
-        if (Header.Machine != COFF::IMAGE_FILE_MACHINE_R4000 ||
-            Relocation.Data.Type != COFF::IMAGE_REL_MIPS_PAIR) {
+        if ((Header.Machine != COFF::IMAGE_FILE_MACHINE_R4000 && Header.Machine != COFF::IMAGE_FILE_MACHINE_PPCBE) ||
+            (Relocation.Data.Type != COFF::IMAGE_REL_MIPS_PAIR && Relocation.Data.Type != COFF::IMAGE_REL_PPC_PAIR)) {
           Relocation.Data.SymbolTableIndex = Relocation.Symb->getIndex();
         }
       }
@@ -975,6 +975,7 @@ void WinCOFFWriter::recordRelocation(MCAssembler &Asm,
     }
   }
 
+  dbgs() << "Reloc.Data.Type=" << Reloc.Data.Type << "\n";
   if (Header.Machine == COFF::IMAGE_FILE_MACHINE_PPCBE) {
     switch (Reloc.Data.Type) {
     case COFF::IMAGE_REL_PPC_ABSOLUTE:
@@ -989,7 +990,6 @@ void WinCOFFWriter::recordRelocation(MCAssembler &Asm,
     case COFF::IMAGE_REL_PPC_REL24:
       break;
     default:
-      dbgs() << "Reloc.Data.Type=" << Reloc.Data.Type << "\n";
       llvm_unreachable("unsupported relocation");
     }
   }
@@ -1000,19 +1000,21 @@ void WinCOFFWriter::recordRelocation(MCAssembler &Asm,
 
   if (OWriter.TargetObjectWriter->recordRelocation(Fixup)) {
     Sec->Relocations.push_back(Reloc);
-    if (Reloc.Data.Type == COFF::IMAGE_REL_PPC_REFLO || Reloc.Data.Type == COFF::IMAGE_REL_PPC_REFHI) {
-      COFFRelocation PairReloc;
-      PairReloc.Data.Type = COFF::IMAGE_REL_PPC_PAIR;
-      PairReloc.Data.SymbolTableIndex = 0;
-      PairReloc.Symb = Reloc.Symb;
-      Sec->Relocations.push_back(PairReloc);
-    } else if (Header.Machine == COFF::IMAGE_FILE_MACHINE_R4000 &&
+    if (Header.Machine == COFF::IMAGE_FILE_MACHINE_R4000 &&
         (Reloc.Data.Type == COFF::IMAGE_REL_MIPS_REFHI ||
          Reloc.Data.Type == COFF::IMAGE_REL_MIPS_SECRELHI)) {
       // IMAGE_REL_MIPS_REFHI and IMAGE_REL_MIPS_SECRELHI *must*
       // be followed by IMAGE_REL_MIPS_PAIR
       auto RelocPair = Reloc;
       RelocPair.Data.Type = COFF::IMAGE_REL_MIPS_PAIR;
+      Sec->Relocations.push_back(RelocPair);
+    }
+
+    if (Header.Machine == COFF::IMAGE_FILE_MACHINE_PPCBE &&
+        Reloc.Data.Type == COFF::IMAGE_REL_PPC_REFHI) {
+      dbgs() << "PAIR!\n";
+      auto RelocPair = Reloc;
+      RelocPair.Data.Type = COFF::IMAGE_REL_PPC_PAIR;
       Sec->Relocations.push_back(RelocPair);
     }
   }

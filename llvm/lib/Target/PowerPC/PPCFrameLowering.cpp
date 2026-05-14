@@ -738,7 +738,6 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
   // Work out frame sizes.
   uint64_t FrameSize = determineFrameLayoutAndUpdate(MF);
   int64_t NegFrameSize = -FrameSize;
-  dbgs() << "FrameSize=" << FrameSize << "\n";
   if (!isPPC64 && (!isInt<32>(FrameSize) || !isInt<32>(NegFrameSize)))
     llvm_unreachable("Unhandled stack size!");
 
@@ -800,7 +799,6 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
          "Required number of registers not available in this block");
 
   SingleScratchReg = ScratchReg == TempReg;
-  dbgs() << "SingleScratchReg=" << SingleScratchReg << " (ScratchReg=" << ScratchReg << ", TempReg=" << TempReg << ")\n";
 
   int64_t LROffset = getReturnSaveOffset();
   if(isXbox360)
@@ -1690,11 +1688,11 @@ void PPCFrameLowering::emitEpilogue(MachineFunction &MF,
   bool HasROPProtect = Subtarget.hasROPProtect();
   bool HasPrivileged = Subtarget.hasPrivileged();
 
-  Register SPReg      = isPPC64 && !isXbox360 ? PPC::X1  : PPC::R1;
+  Register SPReg = isPPC64 && !isXbox360 ? PPC::X1  : PPC::R1;
   Register BPReg = RegInfo->getBaseRegister(MF);
-  Register FPReg      = isPPC64 && !isXbox360 ? PPC::X31 : PPC::R31;
+  Register FPReg = isPPC64 && !isXbox360 ? PPC::X31 : PPC::R31;
   Register ScratchReg;
-  Register TempReg     = isPPC64 && !isXbox360 ? PPC::X12 : PPC::R12; // another scratch reg
+  Register TempReg = isPPC64 && !isXbox360 ? PPC::X12 : PPC::R12; // another scratch reg
   const MCInstrDesc& MTLRInst = TII.get( isPPC64 && !isXbox360 ? PPC::MTLR8
                                                  : PPC::MTLR );
   const MCInstrDesc& LoadInst = TII.get( isPPC64 && !isXbox360 ? PPC::LD
@@ -1835,7 +1833,6 @@ void PPCFrameLowering::emitEpilogue(MachineFunction &MF,
     // If the function has a base pointer, the stack pointer has been copied
     // to it so we can restore it by copying in the other direction.
     if (HasRedZone && HasBP) {
-      dbgs() << "1829\n";
       BuildMI(MBB, MBBI, dl, OrInst, RBReg).
         addReg(BPReg).
         addReg(BPReg);
@@ -1878,7 +1875,6 @@ void PPCFrameLowering::emitEpilogue(MachineFunction &MF,
       // could happen to be R0. Use FP instead, but make sure to preserve it.
       if (!HasRedZone) {
         // If FP is not saved, copy it to ScratchReg.
-        dbgs() << "1872\n";
         if (!HasFP)
           BuildMI(MBB, MBBI, dl, OrInst, ScratchReg)
             .addReg(FPReg)

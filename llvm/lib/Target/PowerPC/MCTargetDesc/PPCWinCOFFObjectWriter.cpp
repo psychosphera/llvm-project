@@ -27,7 +27,7 @@ public:
 
   unsigned getRelocType(MCContext &Ctx, const MCValue &Target,
                                 const MCFixup &Fixup, bool IsCrossSection,
-                                const MCAsmBackend &MAB) const;
+                                const MCAsmBackend &MAB) const override;
   bool recordRelocation(const MCFixup &) const override;
 };
 } // end anonymous namespace
@@ -44,22 +44,24 @@ unsigned PPCWinCOFFObjectWriter::getRelocType(MCContext &Ctx, const MCValue &Tar
                                 const MCFixup &Fixup, bool IsCrossSection,
                                 const MCAsmBackend &MAB) const
 {
+
   MCSymbolRefExpr::VariantKind Modifier =
     Target.isAbsolute() ? MCSymbolRefExpr::VK_None : Target.getSymA()->getKind();
   const unsigned FixupKind = Fixup.getKind();
-  assert(Modifier != MCSymbolRefExpr::VK_PPC_TOC && 
+  assert(Modifier != MCSymbolRefExpr::VK_PPC_TOC &&
          Modifier != MCSymbolRefExpr::VK_PPC_TOC_HA &&
          Modifier != MCSymbolRefExpr::VK_PPC_TOC_HI &&
          Modifier != MCSymbolRefExpr::VK_PPC_TOC_LO &&
          Modifier != MCSymbolRefExpr::VK_PPC_TOCBASE &&
          "WinCOFF doesn't use TOC for any implemented platform");
+  dbgs() << "PPCWinCOFFObjectWriter::getRelocType: FixupKind=" << Fixup.getKind() << ", VariantKind=" << Target.getSymA()->getKind() << ", Modifier=" << Modifier << "\n";
   switch(FixupKind) {
   // TODO: make sure these are all valid for the target's variant kind.
   case FK_NONE:
   case PPC::fixup_ppc_nofixup:
     return llvm::COFF::IMAGE_REL_PPC_ABSOLUTE;
   case PPC::fixup_ppc_half16ds:
-    return llvm::COFF::IMAGE_REL_PPC_ADDR16;
+    return llvm::COFF::IMAGE_REL_PPC_ADDR14;
   case FK_Data_2:
     return llvm::COFF::IMAGE_REL_PPC_ADDR16;
   case FK_Data_4:
@@ -87,12 +89,13 @@ unsigned PPCWinCOFFObjectWriter::getRelocType(MCContext &Ctx, const MCValue &Tar
     return llvm::COFF::IMAGE_REL_PPC_ADDR14;
   case PPC::fixup_ppc_half16:
     switch (Modifier) {
-    case MCSymbolRefExpr::VK_PPC_LO: 
+    case MCSymbolRefExpr::VK_None:
+    case MCSymbolRefExpr::VK_PPC_LO:
       return llvm::COFF::IMAGE_REL_PPC_REFLO;
     case MCSymbolRefExpr::VK_PPC_HI:
     case MCSymbolRefExpr::VK_PPC_HA:
       return llvm::COFF::IMAGE_REL_PPC_REFHI;
-    default: 
+    default:
       ;
     }
     [[fallthrough]];
@@ -104,5 +107,6 @@ unsigned PPCWinCOFFObjectWriter::getRelocType(MCContext &Ctx, const MCValue &Tar
 }
 
 bool PPCWinCOFFObjectWriter::recordRelocation(const MCFixup &) const {
+  dbgs() << "Recording relocation.\n";
   return true; // FIXME: Not sure if valid.
 }

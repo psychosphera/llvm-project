@@ -24,6 +24,9 @@
 #include <cstring>
 #include <type_traits>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmicrosoft-enum-value"
+
 namespace llvm {
 namespace ELF {
 
@@ -2006,5 +2009,7 @@ StringRef convertOSABIToName(uint8_t OSABI);
 
 } // end namespace ELF
 } // end namespace llvm
+
+#pragma clang diagnostic pop
 
 #endif // LLVM_BINARYFORMAT_ELF_H

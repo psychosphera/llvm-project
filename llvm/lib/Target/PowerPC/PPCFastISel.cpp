@@ -1034,7 +1034,27 @@ unsigned PPCFastISel::PPCMoveToFPReg(MVT SrcVT, unsigned SrcReg,
   unsigned LoadOpc = PPC::LFD;
 
   if (SrcVT == MVT::i32) {
-    if (!IsSigned) {
+    // Xbox 360 doesn't have LFIWZX or LFIWAX.
+    if (Subtarget->isTargetXbox360()) {
+      if (IsSigned)
+        llvm_unreachable("");
+
+      // zero-extend: put 32-bit word in high half (BE) and zero low half
+      Addr.Offset = 0;                    // high half for big-endian
+      if (!PPCEmitStore(MVT::i32, SrcReg, Addr)) return 0;
+      // store zero into low half
+      Register ZeroReg = createResultReg(&PPC::G8RCRegClass);
+      BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, TII.get(PPC::LI),
+              ZeroReg).addImm(0);
+      Addr.Offset = 4;
+      if (!PPCEmitStore(MVT::i32, ZeroReg, Addr)) return 0;
+      Register ResultReg = 0;
+      Addr.Offset = 0;
+      if (!PPCEmitLoad(MVT::f32, ResultReg, Addr, &PPC::F4RCRegClass,
+                        /*IsZExt=*/true, PPC::LFS))
+         return 0;
+       return ResultReg;
+    } else if (!IsSigned) {
       LoadOpc = PPC::LFIWZX;
       Addr.Offset = (Subtarget->isLittleEndian()) ? 0 : 4;
     } else if (Subtarget->hasLFIWAX()) {
@@ -1983,9 +2003,7 @@ bool PPCFastISel::fastSelectInstruction(const Instruction *I) {
 // the register number (or zero if we failed to handle it).
 unsigned PPCFastISel::PPCMaterializeFP(const ConstantFP *CFP, MVT VT) {
   // If this is a PC-Rel function, let SDISel handle constant pool.
-  // Xbox 360 doesn't use TOC, so the implementation here is invalid,
-  // but SDISel seems to handle it just fine
-  if (Subtarget->isUsingPCRelativeCalls() || Subtarget->isTargetXbox360())
+  if (Subtarget->isUsingPCRelativeCalls())
     return false;
 
   // No plans to handle long double here.
@@ -2003,6 +2021,22 @@ unsigned PPCFastISel::PPCMaterializeFP(const ConstantFP *CFP, MVT VT) {
     RC = ((VT == MVT::f32) ? &PPC::F4RCRegClass : &PPC::F8RCRegClass);
 
   Register DestReg = createResultReg(RC);
+
+  // Xbox 360 doesn't use TOC, so we have to handle it separately.
+  if (Subtarget->isTargetXbox360()) {
+      APInt api = CFP->getValueAPF().bitcastToAPInt();
+      if (VT == MVT::f32) {
+          uint32_t Bits = (uint32_t)api.getZExtValue();
+          unsigned IntReg = PPCMaterialize32BitInt(Bits, &PPC::GPRCRegClass);
+          return PPCMoveToFPReg(MVT::i32, IntReg, /*IsSigned=*/false);
+      } else if (VT == MVT::f64) {
+          uint64_t Bits = api.getZExtValue();
+          unsigned IntReg = PPCMaterialize64BitInt(Bits, &PPC::G8RCRegClass);
+          return PPCMoveToFPReg(MVT::i64, IntReg, /*IsSigned=*/false);
+      }
+      return DestReg;
+  }
+
   CodeModel::Model CModel = TM.getCodeModel();
 
   MachineMemOperand *MMO = FuncInfo.MF->getMachineMemOperand(
@@ -2018,9 +2052,7 @@ unsigned PPCFastISel::PPCMaterializeFP(const ConstantFP *CFP, MVT VT) {
 
   Register TmpReg = createResultReg(&PPC::G8RC_and_G8RC_NOX0RegClass);
 
-  assert(!Subtarget->isTargetXbox360() && "Xbox 360 doesn't use TOC.");
   PPCFuncInfo->setUsesTOCBasePtr();
-  // For small code model, generate a LF[SD](0, LDtocCPT(Idx, X2)).
   if (CModel == CodeModel::Small) {
     const unsigned Reg = PPC::X2;
     BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, TII.get(PPC::LDtocCPT),

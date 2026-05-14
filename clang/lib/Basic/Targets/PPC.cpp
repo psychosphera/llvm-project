@@ -292,7 +292,8 @@ void PPCTargetInfo::getTargetDefines(const LangOptions &Opts,
   if (getTriple().isOSXbox360()) {
     Builder.defineMacro("_M_PPC");
     Builder.defineMacro("_M_PPCBE");
-    return;
+    Builder.defineMacro("__fctidz", "__builtin_ppc_fctidz");
+    Builder.defineMacro("__fcfid", "__builtin_ppc_fcfid");
   }
 
   // We define the XLC compatibility macros only on AIX and Linux since XLC

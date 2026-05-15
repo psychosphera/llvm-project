@@ -4072,11 +4072,13 @@ const MCExpr *AsmPrinter::lowerBlockAddressConstant(const BlockAddress &BA) {
 
 /// GetCPISymbol - Return the symbol for the specified constant pool entry.
 MCSymbol *AsmPrinter::GetCPISymbol(unsigned CPID) const {
-    dbgs() << "AsmPrinter::GetCPISymbol: CPID=" << CPID << "\n";
+  dbgs() << "AsmPrinter::GetCPISymbol: CPID=" << CPID << "\n";
+  dbgs() << "AsmPrinter::GetCPISymbol: getSubtargetInfo().getTargetTriple().isWindowsMSVCEnvironment()=" << getSubtargetInfo().getTargetTriple().isWindowsMSVCEnvironment() << "\n";
   if (getSubtargetInfo().getTargetTriple().isWindowsMSVCEnvironment()) {
     const MachineConstantPoolEntry &CPE =
         MF->getConstantPool()->getConstants()[CPID];
     if (!CPE.isMachineConstantPoolEntry()) {
+      dbgs() << "AsmPrinter::GetCPISymbol: !CPE.isMachineConstantPoolEntry()\n";
       const DataLayout &DL = MF->getDataLayout();
       SectionKind Kind = CPE.getSectionKind(&DL);
       const Constant *C = CPE.Val.ConstVal;
@@ -4084,12 +4086,18 @@ MCSymbol *AsmPrinter::GetCPISymbol(unsigned CPID) const {
       if (const MCSectionCOFF *S = dyn_cast<MCSectionCOFF>(
               getObjFileLowering().getSectionForConstant(DL, Kind, C,
                                                          Alignment))) {
+        dbgs() << "AsmPrinter::GetCPISymbol: MCSectionCOFF S=" << S << "\n";
         if (MCSymbol *Sym = S->getCOMDATSymbol()) {
+          dbgs() << "AsmPrinter::GetCPISymbol: Sym=" << Sym << "\n";
           if (Sym->isUndefined())
             OutStreamer->emitSymbolAttribute(Sym, MCSA_Global);
+          else
+            dbgs() << "AsmPrinter::GetCPISymbol: Sym is defined\n";
           return Sym;
         }
       }
+    } else {
+        dbgs() << "AsmPrinter::GetCPISymbol: CPE.isMachineConstantPoolEntry() == true\n";
     }
   }
 

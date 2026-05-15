@@ -2088,9 +2088,7 @@ unsigned PPCFastISel::PPCMaterializeFP(const ConstantFP *CFP, MVT VT) {
 // the register number (or zero if we failed to handle it).
 unsigned PPCFastISel::PPCMaterializeGV(const GlobalValue *GV, MVT VT) {
   // If this is a PC-Rel function, let SDISel handle GV materialization.
-  // Xbox 360 doesn't use TOC, so the implementation here is invalid,
-  // but SDISel seems to handle it just fine.
-  if (Subtarget->isUsingPCRelativeCalls() || Subtarget->isTargetXbox360())
+  if (Subtarget->isUsingPCRelativeCalls())
     return false;
 
   assert(VT == MVT::i64 || VT == MVT::i32 && "Non-address!");
@@ -2110,7 +2108,37 @@ unsigned PPCFastISel::PPCMaterializeGV(const GlobalValue *GV, MVT VT) {
   if (GV->isThreadLocal())
     return 0;
 
-  assert(!Subtarget->isTargetXbox360() && "Xbox 360 doesn't use TOC.");
+  // Xbox 360 has no TOC, so we need to generate direct accesses.
+  if (Subtarget->isTargetXbox360()) {
+      const TargetRegisterClass *RC =
+           &PPC::G8RC_and_G8RC_NOX0RegClass; // 64-bit GPR class used by backend.
+       Register TmpReg = createResultReg(RC);
+       Register DestReg = createResultReg(RC);
+
+       unsigned ZeroReg = PPC::ZERO;
+
+       // Pick the correct relocation flags for hi/lo depending on PIC.
+       unsigned HiOpFlags = PPCII::MO_HA;
+       unsigned LoOpFlags = PPCII::MO_LO;
+       // If you are generating PIC code, use PIC variants:
+       if (TM.getRelocationModel() == Reloc::PIC_) {
+         HiOpFlags = PPCII::MO_PIC_HA_FLAG;
+         LoOpFlags = PPCII::MO_PIC_LO_FLAG;
+       }
+
+       // Emit ADDIS TmpReg, ZERO, ha(sym)
+       BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, TII.get(PPC::ADDIS), TmpReg)
+           .addReg(ZeroReg)
+           .addGlobalAddress(GV, 0, HiOpFlags);
+
+       // Emit ADDI DestReg, TmpReg, lo(sym)
+       BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, TII.get(PPC::ADDI), DestReg)
+           .addReg(TmpReg, getKillRegState(true))
+           .addGlobalAddress(GV, 0, LoOpFlags);
+
+       return DestReg;
+  }
+
   PPCFuncInfo->setUsesTOCBasePtr();
   bool IsAIXTocData = TM.getTargetTriple().isOSAIX() &&
                       isa<GlobalVariable>(GV) &&

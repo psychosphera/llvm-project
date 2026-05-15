@@ -11,6 +11,8 @@
 
 #include "llvm/ADT/Twine.h"
 #include "llvm/Support/VersionTuple.h"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/raw_ostream.h"
 
 // Some system headers or GCC predefined macros conflict with identifiers in
 // this file.  Undefine them here.
@@ -667,7 +669,7 @@ public:
   /// Checks if the environment could be MSVC.
   bool isWindowsMSVCEnvironment() const {
     return isKnownWindowsMSVCEnvironment() ||
-           (isOSWindows() && getEnvironment() == Triple::UnknownEnvironment);
+           ((isOSWindows() || isOSXbox360()) && getEnvironment() == Triple::UnknownEnvironment);
   }
 
   // Checks if we're using the Windows Arm64EC ABI.

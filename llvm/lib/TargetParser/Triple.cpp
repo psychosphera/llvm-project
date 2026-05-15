@@ -1324,6 +1324,12 @@ std::string Triple::normalize(StringRef Str, CanonicalForm Form) {
     }
   }
 
+  if (OS == Triple::Xbox360) {
+      if (Components.size() < 4)
+          Components.resize(4);
+      Components[3] = "msvc";
+  }
+
   // Normalize DXIL triple if it does not include DXIL version number.
   // Determine DXIL version number using the minor version number of Shader
   // Model version specified in target triple, if any. Prior to decoupling DXIL

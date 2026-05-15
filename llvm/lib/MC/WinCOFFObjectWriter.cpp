@@ -245,12 +245,17 @@ COFFSymbol *WinCOFFWriter::createSymbol(StringRef Name) {
 
 COFFSymbol *WinCOFFWriter::GetOrCreateCOFFSymbol(const MCSymbol *Symbol) {
   COFFSymbol *&Ret = SymbolMap[Symbol];
-  if (!Ret)
+  if (!Ret) {
+    dbgs() << "WinCOFFWriter::GetOrCreateCOFFSymbol: creating symbol: " << Symbol->getName() << "\n";
     Ret = createSymbol(Symbol->getName());
+  } else {
+    dbgs() << "WinCOFFWriter::GetOrCreateCOFFSymbol: got symbol: " << Symbol->getName() << "\n";
+  }
   return Ret;
 }
 
 COFFSection *WinCOFFWriter::createSection(StringRef Name) {
+  dbgs() << "WinCOFFWriter::createSection: " << Name << "\n";
   Sections.emplace_back(std::make_unique<COFFSection>(Name));
   return Sections.back().get();
 }
@@ -303,6 +308,7 @@ void WinCOFFWriter::defineSection(const MCAssembler &Asm,
   // Create a COMDAT symbol if needed.
   if (MCSec.getSelection() != COFF::IMAGE_COMDAT_SELECT_ASSOCIATIVE) {
     if (const MCSymbol *S = MCSec.getCOMDATSymbol()) {
+      dbgs() << "WinCOFFWriter::defineSection: comdat symbol: " << S->getName() << "\n";
       COFFSymbol *COMDATSymbol = GetOrCreateCOFFSymbol(S);
       if (COMDATSymbol->Section)
        report_fatal_error("two sections have the same comdat");

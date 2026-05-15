@@ -114,7 +114,7 @@ enum class BuildIDHash {
 // Global configuration.
 struct Configuration {
   enum ManifestKind { Default, SideBySide, Embed, No };
-  bool is64() const { return llvm::COFF::is64Bit(machine); }
+  bool is64() const { return llvm::COFF::is64Bit(machine) && machine != llvm::COFF::IMAGE_FILE_MACHINE_PPCBE; }
 
   std::unique_ptr<MemoryBuffer> dosStub;
   llvm::COFF::MachineTypes machine = IMAGE_FILE_MACHINE_UNKNOWN;

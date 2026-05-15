@@ -1086,6 +1086,8 @@ WindowsSubsystem SymbolTable::inferSubsystem() {
     return IMAGE_SUBSYSTEM_WINDOWS_GUI;
   if (ctx.config.mingw)
     return IMAGE_SUBSYSTEM_WINDOWS_CUI;
+  if (ctx.config.machine == IMAGE_FILE_MACHINE_PPCBE)
+    return IMAGE_SUBSYSTEM_XBOX;
   // Note that link.exe infers the subsystem from the presence of these
   // functions even if /entry: or /nodefaultlib are passed which causes them
   // to not be called.

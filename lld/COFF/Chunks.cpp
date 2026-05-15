@@ -397,32 +397,27 @@ void SectionChunk::applyRelARM64(uint8_t *off, uint16_t type, OutputSection *os,
 void SectionChunk::applyRelPPC(uint8_t *off, uint16_t type, OutputSection *os,
                                uint64_t s, uint64_t p,
                                uint64_t imageBase) const {
+
   switch (type) {
-  case IMAGE_REL_PPC_ADDR14:
-    add16(off, s + imageBase);
+  case IMAGE_REL_PPC_ABSOLUTE:
     break;
-  case IMAGE_REL_PPC_ADDR16:
-    add16(off, s + imageBase);
+
+  case IMAGE_REL_PPC_REFHI: {
+    write16be(off + 2, (s + imageBase) >> 16);
     break;
-  case IMAGE_REL_PPC_ADDR24:
-    add32(off, s + imageBase);
+  }
+  case IMAGE_REL_PPC_REFLO: {
+    write16be(off + 2, (s + imageBase) & 0xFFFF);
     break;
-  case IMAGE_REL_PPC_ADDR32:
-    add32(off, s + imageBase);
+  }
+  case IMAGE_REL_PPC_PAIR: {
+    add32be(off + 2, (s + imageBase) & 0xFFFF);
     break;
-  case IMAGE_REL_PPC_ADDR64:
-    add64(off, s + imageBase);
+  }
+  case IMAGE_REL_PPC_ADDR32: {
+    add32be(off, s + imageBase);
     break;
-  case IMAGE_REL_PPC_ADDR32NB: add32(off, s); break;
-  case IMAGE_REL_PPC_REL24:    add32(off, s - p - 4); break;
-  case IMAGE_REL_PPC_REL14:    add16(off, s - p - 4); break;
-  case IMAGE_REL_PPC_SECTION:
-    applySecIdx(off, os, file->symtab.ctx.outputSections.size());
-    break;
-  case IMAGE_REL_PPC_SECREL:
-  case IMAGE_REL_PPC_SECREL16:
-    applySecRel(this, off, os, s);
-    break;
+  }
   default:
     error("unsupported relocation type 0x" + Twine::utohexstr(type) + " in " +
           toString(file));
@@ -511,6 +506,7 @@ void SectionChunk::applyRelocation(uint8_t *off,
   // it was an absolute or synthetic symbol.
   if (!sym ||
       (!os && !isa<DefinedAbsolute>(sym) && !isa<DefinedSynthetic>(sym))) {
+    dbgs() << "SectionChunk::applyRelocation: discarded relocation: " << rel.Type << ", sym=" << sym << ", os=" << os << "\n";
     maybeReportRelocationToDiscarded(this, sym, rel, ctx.config.mingw);
     return;
   }
@@ -533,7 +529,7 @@ void SectionChunk::applyRelocation(uint8_t *off,
   case Triple::aarch64:
     applyRelARM64(off, rel.Type, os, s, p, imageBase);
     break;
-  case Triple::ppc:
+  case Triple::ppc64:
     applyRelPPC(off, rel.Type, os, s, p, imageBase);
     break;
   default:
@@ -621,6 +617,13 @@ static uint8_t getBaserelType(const coff_relocation &rel,
   case Triple::aarch64:
     if (rel.Type == IMAGE_REL_ARM64_ADDR64)
       return IMAGE_REL_BASED_DIR64;
+    return IMAGE_REL_BASED_ABSOLUTE;
+  case Triple::ppc64:
+    dbgs() << "rel.Type: " << rel.Type << "\n";
+    if (rel.Type == IMAGE_REL_PPC_ADDR64)
+      return IMAGE_REL_BASED_DIR64;
+    if (rel.Type == IMAGE_REL_PPC_ADDR32)
+        return IMAGE_REL_BASED_HIGHLOW;
     return IMAGE_REL_BASED_ABSOLUTE;
   default:
     llvm_unreachable("unknown machine type");
@@ -732,6 +735,15 @@ static int getRuntimePseudoRelocSize(uint16_t type, Triple::ArchType arch) {
     default:
       return 0;
     }
+    case Triple::ppc64:
+      switch (type) {
+      case IMAGE_REL_PPC_ADDR64:
+        return 64;
+      case IMAGE_REL_PPC_ADDR32:
+        return 32;
+      default:
+        return 0;
+      }
   default:
     llvm_unreachable("unknown machine type");
   }

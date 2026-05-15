@@ -804,7 +804,7 @@ void LinkerDriver::addLibSearchPaths() {
 uint64_t LinkerDriver::getDefaultImageBase() {
   if (ctx.config.is64())
     return ctx.config.dll ? 0x180000000 : 0x140000000;
-  return ctx.config.dll ? 0x10000000 : 0x400000;
+  return ctx.config.dll ? 0x10000000 : ctx.config.machine == IMAGE_FILE_MACHINE_PPCBE ? 0x82000000 : 0x400000;
 }
 
 static std::string rewritePath(StringRef s) {
@@ -2096,11 +2096,11 @@ void LinkerDriver::linkerMain(ArrayRef<const char *> argsArr) {
   config->integrityCheck =
       args.hasFlag(OPT_integritycheck, OPT_integritycheck_no, false);
   config->cetCompat = args.hasFlag(OPT_cetcompat, OPT_cetcompat_no, false);
-  config->nxCompat = args.hasFlag(OPT_nxcompat, OPT_nxcompat_no, true);
+  config->nxCompat = args.hasFlag(OPT_nxcompat, OPT_nxcompat_no, config->machine != IMAGE_FILE_MACHINE_PPCBE);
   for (auto *arg : args.filtered(OPT_swaprun))
     parseSwaprun(arg->getValue());
   config->terminalServerAware =
-      !config->dll && args.hasFlag(OPT_tsaware, OPT_tsaware_no, true);
+      !config->dll && args.hasFlag(OPT_tsaware, OPT_tsaware_no, config->machine != IMAGE_FILE_MACHINE_PPCBE);
   config->autoImport =
       args.hasFlag(OPT_auto_import, OPT_auto_import_no, config->mingw);
   config->pseudoRelocs = args.hasFlag(
@@ -2263,13 +2263,15 @@ void LinkerDriver::linkerMain(ArrayRef<const char *> argsArr) {
 
   // Handle /largeaddressaware
   config->largeAddressAware = args.hasFlag(
-      OPT_largeaddressaware, OPT_largeaddressaware_no, config->is64());
+      OPT_largeaddressaware, OPT_largeaddressaware_no,
+      config->is64());
 
   // Handle /highentropyva
   config->highEntropyVA =
       config->is64() &&
       args.hasFlag(OPT_highentropyva, OPT_highentropyva_no, true);
 
+  config->dynamicBase = config->machine != IMAGE_FILE_MACHINE_PPCBE;
   if (!config->dynamicBase &&
       (config->machine == ARMNT || isAnyArm64(config->machine)))
     Err(ctx) << "/dynamicbase:no is not compatible with "

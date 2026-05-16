@@ -506,7 +506,6 @@ void SectionChunk::applyRelocation(uint8_t *off,
   // it was an absolute or synthetic symbol.
   if (!sym ||
       (!os && !isa<DefinedAbsolute>(sym) && !isa<DefinedSynthetic>(sym))) {
-    dbgs() << "SectionChunk::applyRelocation: discarded relocation: " << rel.Type << ", sym=" << sym << ", os=" << os << "\n";
     maybeReportRelocationToDiscarded(this, sym, rel, ctx.config.mingw);
     return;
   }
@@ -619,7 +618,6 @@ static uint8_t getBaserelType(const coff_relocation &rel,
       return IMAGE_REL_BASED_DIR64;
     return IMAGE_REL_BASED_ABSOLUTE;
   case Triple::ppc64:
-    dbgs() << "rel.Type: " << rel.Type << "\n";
     if (rel.Type == IMAGE_REL_PPC_ADDR64)
       return IMAGE_REL_BASED_DIR64;
     if (rel.Type == IMAGE_REL_PPC_ADDR32)

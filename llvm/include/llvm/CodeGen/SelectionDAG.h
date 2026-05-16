@@ -700,7 +700,6 @@ public:
 
   SDValue getTargetConstant(uint64_t Val, const SDLoc &DL, EVT VT,
                             bool isOpaque = false) {
-    dbgs() << "getTargetConstant: Val=" << Val << ", VT=" << VT << "\n";
     return getConstant(Val, DL, VT, true, isOpaque);
   }
   SDValue getTargetConstant(const APInt &Val, const SDLoc &DL, EVT VT,

@@ -1753,7 +1753,6 @@ static uint32_t getSecrelReloc(Triple::ArchType arch) {
   case Triple::ppc64:
     return COFF::IMAGE_REL_PPC_SECREL;
   default:
-    dbgs() << "machine type " << arch << " is not supported\n";
     llvm_unreachable("unknown machine type");
   }
 }

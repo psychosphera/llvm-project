@@ -414,7 +414,6 @@ PPCFrameLowering::determineFrameLayout(const MachineFunction &MF,
 
   unsigned LR = RegInfo->getRARegister();
   bool DisableRedZone = MF.getFunction().hasFnAttribute(Attribute::NoRedZone);
-  dbgs() << "determineFrameLayout: MF.getName()=" << MF.getName() << "\n";
 
   bool CanUseRedZone = !MFI.hasVarSizedObjects() && // No dynamic alloca.
                        !MFI.adjustsStack() &&       // No calls.
@@ -1012,7 +1011,6 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
   bool HasSTUX =
       (TLI.hasInlineStackProbe(MF) && FrameSize > TLI.getStackProbeSize(MF)) ||
       (HasBP && MaxAlign > 1) || isLargeFrame;
-  dbgs() << "HasSTUX=" << HasSTUX << "\n";
 
   // If we use STUX to update the stack pointer, we need the two scratch
   // registers TempReg and ScratchReg, we have to save LR here which is stored
@@ -1280,7 +1278,6 @@ void PPCFrameLowering::emitPrologue(MachineFunction &MF,
 
   // If there is a frame pointer, copy R1 into R31
   if (HasFP) {
-    dbgs() << "1275\n";
     BuildMI(MBB, MBBI, dl, OrInst, FPReg)
       .addReg(SPReg)
       .addReg(SPReg);

@@ -1665,7 +1665,6 @@ SDValue SelectionDAG::getBoolConstant(bool V, const SDLoc &DL, EVT VT,
 
 SDValue SelectionDAG::getConstant(uint64_t Val, const SDLoc &DL, EVT VT,
                                   bool isT, bool isO) {
-  dbgs() << "getConstant: Val=" << Val << ", VT=" << VT << "\n";
   return getConstant(APInt(VT.getScalarSizeInBits(), Val, /*isSigned=*/false),
                      DL, VT, isT, isO);
 }

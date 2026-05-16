@@ -6009,7 +6009,7 @@ InputInfoList Driver::BuildJobsForActionNoCache(
 
 const char *Driver::getDefaultImageName() const {
   llvm::Triple Target(llvm::Triple::normalize(TargetTriple));
-  return Target.isOSWindows() ? "a.exe" : "a.out";
+  return Target.isOSWindows() || Target.isOSXbox360() ? "a.exe" : "a.out";
 }
 
 /// Create output filename based on ArgValue, which could either be a
@@ -6687,8 +6687,6 @@ const ToolChain &Driver::getToolChain(const ArgList &Args,
           TC = std::make_unique<toolchains::Generic_ELF>(*this, Target, Args);
         else if (Target.isOSBinFormatMachO())
           TC = std::make_unique<toolchains::MachO>(*this, Target, Args);
-        else if (Target.isOSBinFormatCOFF())
-          TC = std::make_unique<toolchains::Xbox360ToolChain>(*this, Target, Args);
         else
           TC = std::make_unique<toolchains::Generic_GCC>(*this, Target, Args);
         break;
@@ -6729,6 +6727,9 @@ const ToolChain &Driver::getToolChain(const ArgList &Args,
     case llvm::Triple::Vulkan:
     case llvm::Triple::ShaderModel:
       TC = std::make_unique<toolchains::HLSLToolChain>(*this, Target, Args);
+      break;
+    case llvm::Triple::Xbox360:
+      TC = std::make_unique<toolchains::Xbox360ToolChain>(*this, Target, Args);
       break;
     default:
       // Of these targets, Hexagon is the only one that might have

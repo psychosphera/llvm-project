@@ -5311,7 +5311,7 @@ void PPCDAGToDAGISel::Select(SDNode *N) {
                   "ppc-trap-reason") &&
              "Unsupported annotation data type!");
       for (unsigned i = 1; i < MD->getNumOperands(); i++) {
-        assert(isa<MDString>(MD->getOperand(i)) && 
+        assert(isa<MDString>(MD->getOperand(i)) &&
                "Invalid data type for annotation ppc-trap-reason!");
         OpsWithMD.push_back(
             getI32Imm(std::stoi(cast<MDString>(
@@ -5930,7 +5930,7 @@ void PPCDAGToDAGISel::Select(SDNode *N) {
              N->getValueType(0) == MVT::v2i64)
       SelectCCOp = PPC::SELECT_CC_VSRC;
     else
-      SelectCCOp = Subtarget->isTargetXbox360() ? PPC::SELECT_CC_VR128RC : PPC::SELECT_CC_VRRC;
+      SelectCCOp = /* Subtarget->isTargetXbox360() ? PPC::SELECT_CC_VR128RC : */ PPC::SELECT_CC_VRRC;
 
     SDValue Ops[] = { CCReg, N->getOperand(2), N->getOperand(3),
                         getI32Imm(BROpc, dl) };
@@ -6801,7 +6801,7 @@ void PPCDAGToDAGISel::PeepholeCROps() {
       case PPC::SELECT_SPE:
       case PPC::SELECT_SPE4:
       case PPC::SELECT_VRRC:
-      case PPC::SELECT_VR128RC:
+      // case PPC::SELECT_VR128RC:
       case PPC::SELECT_VSFRC:
       case PPC::SELECT_VSSRC:
       case PPC::SELECT_VSRC: {
@@ -7121,7 +7121,7 @@ void PPCDAGToDAGISel::PeepholeCROps() {
       case PPC::SELECT_SPE:
       case PPC::SELECT_SPE4:
       case PPC::SELECT_VRRC:
-      case PPC::SELECT_VR128RC:
+      // case PPC::SELECT_VR128RC:
       case PPC::SELECT_VSFRC:
       case PPC::SELECT_VSSRC:
       case PPC::SELECT_VSRC:

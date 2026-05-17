@@ -110,6 +110,12 @@ protected:
           Changed = true;
 
           const TargetRegisterClass *DstRC = &PPC::VSLRCRegClass;
+          if (!IsF8Reg(DstMO.getReg(), MRI) &&
+              !IsVSFReg(DstMO.getReg(), MRI) &&
+              !IsVSSReg(DstMO.getReg(), MRI))
+          {
+            dbgs() << "PPCVSXCopy::processBlock: DstMO=" << DstMO << ", DstMO.getReg=" << DstMO.getReg() << "\n";
+          }
           assert((IsF8Reg(DstMO.getReg(), MRI) ||
                   IsVSFReg(DstMO.getReg(), MRI) ||
                   IsVSSReg(DstMO.getReg(), MRI)) &&

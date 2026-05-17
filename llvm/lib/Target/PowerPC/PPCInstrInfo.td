@@ -1254,9 +1254,9 @@ let PPC970_Single = 1 in {
   def SELECT_CC_VRRC: PPCCustomInserterPseudo<(outs vrrc:$dst), (ins crrc:$cond, vrrc:$T, vrrc:$F,
                               i32imm:$BROPC), "#SELECT_CC_VRRC",
                               []>;
-  def SELECT_CC_VR128RC: PPCCustomInserterPseudo<(outs vrrc:$dst), (ins crrc:$cond, vrrc:$T, vrrc:$F,
-                              i32imm:$BROPC), "#SELECT_CC_VR128RC",
-                              []>;
+  // def SELECT_CC_VR128RC: PPCCustomInserterPseudo<(outs vrrc:$dst), (ins crrc:$cond, vrrc:$T, vrrc:$F,
+  //                              i32imm:$BROPC), "#SELECT_CC_VR128RC",
+  //                              []>;
 
   // SELECT_* pseudo instructions, like SELECT_CC_* but taking condition
   // register bit directly.
@@ -1281,10 +1281,10 @@ let Predicates = [HasFPU] in {
                           vrrc:$T, vrrc:$F), "#SELECT_VRRC",
                           [(set v4i32:$dst,
                                 (select i1:$cond, v4i32:$T, v4i32:$F))]>;
-  def SELECT_VR128RC: PPCCustomInserterPseudo<(outs vrrc:$dst), (ins crbitrc:$cond,
-                          vrrc:$T, vrrc:$F), "#SELECT_VR128RC",
-                          [(set v4i32:$dst,
-                                (select i1:$cond, v4i32:$T, v4i32:$F))]>;
+  // def SELECT_VR128RC: PPCCustomInserterPseudo<(outs vrrc:$dst), (ins crbitrc:$cond,
+  //                          vrrc:$T, vrrc:$F), "#SELECT_VR128RC",
+  //                          [(set v4i32:$dst,
+  //                             (select i1:$cond, v4i32:$T, v4i32:$F))]>;
 }
 
 // SPILL_CR - Indicate that we're dumping the CR register, so we'll need to

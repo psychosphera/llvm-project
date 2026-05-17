@@ -54,7 +54,6 @@ unsigned PPCWinCOFFObjectWriter::getRelocType(MCContext &Ctx, const MCValue &Tar
          Modifier != MCSymbolRefExpr::VK_PPC_TOC_LO &&
          Modifier != MCSymbolRefExpr::VK_PPC_TOCBASE &&
          "WinCOFF doesn't use TOC for any implemented platform");
-  dbgs() << "PPCWinCOFFObjectWriter::getRelocType: FixupKind=" << Fixup.getKind() << ", VariantKind=" << Target.getSymA()->getKind() << ", Modifier=" << Modifier << "\n";
   switch(FixupKind) {
   // TODO: make sure these are all valid for the target's variant kind.
   case FK_NONE:
@@ -101,12 +100,10 @@ unsigned PPCWinCOFFObjectWriter::getRelocType(MCContext &Ctx, const MCValue &Tar
     [[fallthrough]];
   // TODO: IMAGE_REL_PPC_SECRELLO, IMAGE_REL_PPC_TOKEN
   default:
-    dbgs() << "FixupKind=" << Fixup.getKind() << ", VariantKind=" << Target.getSymA()->getKind() << "\n";
     llvm_unreachable("Unimplemented PPC fixup.");
   }
 }
 
 bool PPCWinCOFFObjectWriter::recordRelocation(const MCFixup &) const {
-  dbgs() << "Recording relocation.\n";
   return true; // FIXME: Not sure if valid.
 }

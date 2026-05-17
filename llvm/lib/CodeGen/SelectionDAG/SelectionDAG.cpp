@@ -6447,6 +6447,10 @@ SDValue SelectionDAG::getNode(unsigned Opcode, const SDLoc &DL, EVT VT,
       return getUNDEF(VT);
     break;
   case ISD::BITCAST:
+    if (VT.getSizeInBits() != N1.getValueSizeInBits()) {
+        dbgs() << "SelectionDAG::getNODE: VT=" << VT << " (" << VT.getSizeInBits() << " bits), N1=" << N1.getValueSizeInBits() << " bits\n";
+        N1.dump();
+    }
     assert(VT.getSizeInBits() == N1.getValueSizeInBits() &&
            "Cannot BITCAST between types of different sizes!");
     if (VT == N1.getValueType()) return N1;   // noop conversion.

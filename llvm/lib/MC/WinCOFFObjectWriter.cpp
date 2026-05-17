@@ -304,7 +304,6 @@ void WinCOFFWriter::defineSection(const MCAssembler &Asm,
   // Create a COMDAT symbol if needed.
   if (MCSec.getSelection() != COFF::IMAGE_COMDAT_SELECT_ASSOCIATIVE) {
     if (const MCSymbol *S = MCSec.getCOMDATSymbol()) {
-      dbgs() << "WinCOFFWriter::defineSection: comdat symbol: " << S->getName() << "\n";
       COFFSymbol *COMDATSymbol = GetOrCreateCOFFSymbol(S);
       if (COMDATSymbol->Section)
        report_fatal_error("two sections have the same comdat");
@@ -977,7 +976,6 @@ void WinCOFFWriter::recordRelocation(MCAssembler &Asm,
     }
   }
 
-  dbgs() << "Reloc.Data.Type=" << Reloc.Data.Type << "\n";
   if (Header.Machine == COFF::IMAGE_FILE_MACHINE_PPCBE) {
     switch (Reloc.Data.Type) {
     case COFF::IMAGE_REL_PPC_ABSOLUTE:
@@ -1014,7 +1012,6 @@ void WinCOFFWriter::recordRelocation(MCAssembler &Asm,
 
     if (Header.Machine == COFF::IMAGE_FILE_MACHINE_PPCBE &&
         Reloc.Data.Type == COFF::IMAGE_REL_PPC_REFHI) {
-      dbgs() << "PAIR!\n";
       auto RelocPair = Reloc;
       RelocPair.Data.Type = COFF::IMAGE_REL_PPC_PAIR;
       Sec->Relocations.push_back(RelocPair);

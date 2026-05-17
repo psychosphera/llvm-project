@@ -525,10 +525,10 @@ public:
     Inst.addOperand(MCOperand::createReg(VRegs[getRegNum()]));
   }
 
-  void addRegVR128RCOperands(MCInst &Inst, unsigned N) const {
-    assert(N == 1 && "Invalid number of operands!");
-    Inst.addOperand(MCOperand::createReg(V128Regs[getRegNum()]));
-  }
+  // void addRegVR128RCOperands(MCInst &Inst, unsigned N) const {
+  //   assert(N == 1 && "Invalid number of operands!");
+  //   Inst.addOperand(MCOperand::createReg(V128Regs[getRegNum()]));
+  // }
 
   void addRegVSRCOperands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");

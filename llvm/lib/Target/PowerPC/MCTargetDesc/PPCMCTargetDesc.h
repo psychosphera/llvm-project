@@ -284,7 +284,7 @@ using llvm::MCPhysReg;
   static const MCPhysReg SPERegs[32] = PPC_REGS0_31(PPC::S);                   \
   static const MCPhysReg VFRegs[32] = PPC_REGS0_31(PPC::VF);                   \
   static const MCPhysReg VRegs[32] = PPC_REGS0_31(PPC::V);                     \
-  static const MCPhysReg V128Regs[128] = PPC_REGS0_127(PPC::V);                \
+  /*static const MCPhysReg V128Regs[128] = PPC_REGS0_127(PPC::V);*/            \
   static const MCPhysReg RRegsNoR0[32] = PPC_REGS_NO0_31(PPC::ZERO, PPC::R);   \
   static const MCPhysReg XRegsNoX0[32] = PPC_REGS_NO0_31(PPC::ZERO8, PPC::X);  \
   static const MCPhysReg VSRegs[64] = PPC_REGS_LO_HI(PPC::VSL, PPC::V);        \

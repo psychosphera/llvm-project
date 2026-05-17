@@ -949,10 +949,10 @@ PPCTargetLowering::PPCTargetLowering(const PPCTargetMachine &TM,
     addRegisterClass(MVT::v8i16, &PPC::VRRCRegClass);
     addRegisterClass(MVT::v16i8, &PPC::VRRCRegClass);
 
-    addRegisterClass(MVT::v4f32, &PPC::VR128RCRegClass);
-    addRegisterClass(MVT::v4i32, &PPC::VR128RCRegClass);
-    addRegisterClass(MVT::v8i16, &PPC::VR128RCRegClass);
-    addRegisterClass(MVT::v16i8, &PPC::VR128RCRegClass);
+    // addRegisterClass(MVT::v4f32, &PPC::VR128RCRegClass);
+    // addRegisterClass(MVT::v4i32, &PPC::VR128RCRegClass);
+    // addRegisterClass(MVT::v8i16, &PPC::VR128RCRegClass);
+    // addRegisterClass(MVT::v16i8, &PPC::VR128RCRegClass);
 
     setOperationAction(ISD::MUL, MVT::v4f32, Legal);
     setOperationAction(ISD::FMA, MVT::v4f32, Legal);
@@ -1192,7 +1192,7 @@ PPCTargetLowering::PPCTargetLowering(const PPCTargetMachine &TM,
 
       addRegisterClass(MVT::v2i64, &PPC::VSRCRegClass);
       addRegisterClass(MVT::f128, &PPC::VRRCRegClass);
-      addRegisterClass(MVT::f128, &PPC::VR128RCRegClass);
+      // addRegisterClass(MVT::f128, &PPC::VR128RCRegClass);
 
       for (MVT FPT : MVT::fp_valuetypes())
         setLoadExtAction(ISD::EXTLOAD, MVT::f128, FPT, Expand);
@@ -5401,7 +5401,6 @@ SDValue PPCTargetLowering::LowerCallResult(
     CCValAssign &VA = RVLocs[i];
     MVT LocVT = VA.getLocVT();
     unsigned LocReg = (unsigned)VA.getLocReg();
-    // LLVM_DEBUG(dbgs() << "LowerCallResult: VA[" << i << "] LocVT=" << LocVT << ", LocReg=" << LocReg << ", ValVT=" << VA.getValVT() << "\n");
     assert(VA.isRegLoc() && "Can only return in registers!");
 
     SDValue Val;
@@ -5943,9 +5942,6 @@ PPCTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   SmallVectorImpl<ISD::OutputArg> &Outs = CLI.Outs;
   SmallVectorImpl<SDValue> &OutVals     = CLI.OutVals;
   SmallVectorImpl<ISD::InputArg> &Ins   = CLI.Ins;
-  // for(const auto& In : Ins) {
-  //  LLVM_DEBUG(dbgs() << "LowerCall: In.VT=" << In.VT << ", In.ArgVT=" << In.ArgVT <<"\n");
-  // }
   SDValue Chain                         = CLI.Chain;
   SDValue Callee                        = CLI.Callee;
   bool &isTailCall                      = CLI.IsTailCall;
@@ -7167,7 +7163,6 @@ static bool CC_Xbox360(unsigned ValNo, MVT ValVT, MVT LocVT,
 
   if (ArgFlags.isByVal()) {
     if (ArgFlags.getNonZeroByValAlign() > VecAlign) {
-      dbgs() << "ArgFlags.getNonZeroByValAlign()=" << ArgFlags.getNonZeroByValAlign().value() << ", RegAlign=" << RegAlign.value() << ", VecAlign=" << VecAlign.value() << ", ValVT=" << ValVT << "\n";
       report_fatal_error("Pass-by-value arguments with alignment greater than "
                          "register width are not supported.");
     }
@@ -7367,7 +7362,7 @@ static const TargetRegisterClass *getRegClassForSVT(MVT::SimpleValueType SVT,
   case MVT::v2i64:
   case MVT::v2f64:
   case MVT::v1i128:
-    return HasVMX128 ?  &PPC::VR128RCRegClass : &PPC::VRRCRegClass;
+    return /* HasVMX128 ?  &PPC::VR128RCRegClass : &PPC::VRRCRegClass; */ &PPC::VRRCRegClass;
   }
 }
 
@@ -14375,7 +14370,7 @@ static bool IsSelectCC(MachineInstr &MI) {
   case PPC::SELECT_CC_F8:
   case PPC::SELECT_CC_F16:
   case PPC::SELECT_CC_VRRC:
-  case PPC::SELECT_CC_VR128RC:
+  // case PPC::SELECT_CC_VR128RC:
   case PPC::SELECT_CC_VSFRC:
   case PPC::SELECT_CC_VSSRC:
   case PPC::SELECT_CC_VSRC:
@@ -20252,8 +20247,6 @@ PPC::AddrMode PPCTargetLowering::SelectOptimalAddrMode(const SDNode *Parent,
       if ((CNType == MVT::i32 || isInt<32>(CNImm)) &&
           (!Align || isAligned(*Align, CNImm))) {
         uint32_t Addr = (uint32_t)CNImm;
-        dbgs() << "SelectOptimalAddrMode: (int64_t)Addr=" << (int64_t)Addr << ", (int16_t)Addr=" << (int16_t)Addr << ", (Addr - (int16_t)Addr) >> 16=" << (((int64_t)Addr - (int16_t)Addr) >> 16) << ", CNImm=" << CNImm << "\n";
-        dbgs() << "(uint64_t)Addr=" << (uint64_t)Addr << ", (uint16_t)Addr=" << (uint16_t)Addr << ", ((uint64_t)Addr - (uint16_t)Addr) >> 16=" << (((uint64_t)Addr - (uint16_t)Addr) >> 16) << "\n";
         // Otherwise, break this down into LIS + Disp.
         Disp = DAG.getSignedTargetConstant((int16_t)Addr, DL, MVT::i32);
         Base =

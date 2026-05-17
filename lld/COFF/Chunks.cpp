@@ -411,7 +411,7 @@ void SectionChunk::applyRelPPC(uint8_t *off, uint16_t type, OutputSection *os,
     break;
   }
   case IMAGE_REL_PPC_PAIR: {
-    add32be(off + 2, (s + imageBase) & 0xFFFF);
+    write16be(off + 2, (s + imageBase) & 0xFFFF);
     break;
   }
   case IMAGE_REL_PPC_ADDR32: {

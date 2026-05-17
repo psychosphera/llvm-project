@@ -207,8 +207,8 @@ PPCRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
   // will use the @notoc relocation which will cause this function to set the
   // st_other bit to 1, thereby communicating to its caller that it arbitrarily
   // clobbers the TOC.
-  bool SaveR2 = Subtarget.isTargetXbox360() ? false 
-                : MF->getRegInfo().isAllocatable(Subtarget.getTOCPointerRegister()) &&
+  bool SaveR2 = Subtarget.isTargetXbox360() ? false
+                : MF->getRegInfo().isAllocatable(PPC::X2) &&
                   !Subtarget.isUsingPCRelativeCalls();
 
   // Cold calling convention CSRs.
@@ -422,8 +422,8 @@ BitVector PPCRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   if (!Subtarget.hasAltivec()) {
     for (MCRegister Reg : PPC::VRRCRegClass)
       markSuperRegs(Reserved, Reg);
-    for (MCRegister Reg : PPC::VR128RCRegClass)
-      markSuperRegs(Reserved, Reg);
+    // for (MCRegister Reg : PPC::VR128RCRegClass)
+    //   markSuperRegs(Reserved, Reg);
   }
 
   if (Subtarget.isAIXABI() && Subtarget.hasAltivec() &&
@@ -674,11 +674,11 @@ unsigned PPCRegisterInfo::getRegPressureLimit(const TargetRegisterClass *RC,
       return 52 - DefaultSafety;
   }
     return 64 - DefaultSafety;
-  case PPC::VR128RCRegClassID: {
-    const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
-    assert(Subtarget.isTargetXbox360() && "Only Xbox 360 uses VMX128.");
-    return 128 - DefaultSafety;
-  }
+  // case PPC::VR128RCRegClassID: {
+  //   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
+  //   assert(Subtarget.isTargetXbox360() && "Only Xbox 360 uses VMX128.");
+  //   return 128 - DefaultSafety;
+  // }
   case PPC::CRRCRegClassID:
     return 8 - DefaultSafety;
   }

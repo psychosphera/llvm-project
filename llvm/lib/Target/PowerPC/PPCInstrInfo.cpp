@@ -1703,7 +1703,16 @@ void PPCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
     SrcReg = SuperReg;
   }
 
-  if (PPC::G8RCRegClass.contains(DestReg) &&
+  // FIXME: this promotion logic exists to handle 32-bit pointers on 64-bit PPC.
+  // So far, the Xbox 360 is the only PPC64 platform supported that uses 32-bit
+  // pointers. This check should probably be replaced with a more general check
+  // for pointer size versus word size.
+  //
+  // Ideally, this logic wouldn't even be necessary, but removing it would likely
+  // necessitate significant changes to register selection in the various codegen
+  // backends.
+  if (MBB.getParent()->getTarget().getTargetTriple().isXbox360() &&
+      PPC::G8RCRegClass.contains(DestReg) &&
       PPC::GPRCRegClass.contains(SrcReg)) {
     MCRegister SuperReg =
         TRI->getMatchingSuperReg(SrcReg, PPC::sub_32, &PPC::G8RCRegClass);
@@ -1711,7 +1720,8 @@ void PPCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
         llvm_unreachable("No matching SuperReg for DestReg");
 
     SrcReg = SuperReg;
-  } else if (PPC::G8RCRegClass.contains(SrcReg) &&
+  } else if (MBB.getParent()->getTarget().getTargetTriple().isXbox360() &&
+             PPC::G8RCRegClass.contains(SrcReg) &&
              PPC::GPRCRegClass.contains(DestReg)) {
     MCRegister SuperReg =
         TRI->getMatchingSuperReg(DestReg, PPC::sub_32, &PPC::G8RCRegClass);
@@ -1789,7 +1799,7 @@ void PPCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
     Opc = PPC::FMR;
   else if (PPC::CRRCRegClass.contains(DestReg, SrcReg))
     Opc = PPC::MCRF;
-  else if (PPC::VRRCRegClass.contains(DestReg, SrcReg) || PPC::VR128RCRegClass.contains(DestReg, SrcReg))
+  else if (PPC::VRRCRegClass.contains(DestReg, SrcReg) /*|| PPC::VR128RCRegClass.contains(DestReg, SrcReg) */)
     Opc = PPC::VOR;
   else if (PPC::VSRCRegClass.contains(DestReg, SrcReg))
     // There are two different ways this can be done:

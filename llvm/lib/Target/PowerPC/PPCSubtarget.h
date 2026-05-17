@@ -301,7 +301,7 @@ public:
   }
 
   MCRegister getStackPointerRegister() const {
-    return IsPPC64 && TargetTriple.isXbox360() ? PPC::X1 : PPC::R1;
+    return IsPPC64 && !TargetTriple.isXbox360() ? PPC::X1 : PPC::R1;
   }
 
   bool isXRaySupported() const override { return IsPPC64 && IsLittleEndian; }

@@ -1054,7 +1054,9 @@ unsigned PPCFastISel::PPCMoveToFPReg(MVT SrcVT, unsigned SrcReg,
                         /*IsZExt=*/true, PPC::LFS))
          return 0;
        return ResultReg;
-    } else if (!IsSigned) {
+    }
+
+    if (!IsSigned) {
       LoadOpc = PPC::LFIWZX;
       Addr.Offset = (Subtarget->isLittleEndian()) ? 0 : 4;
     } else if (Subtarget->hasLFIWAX()) {

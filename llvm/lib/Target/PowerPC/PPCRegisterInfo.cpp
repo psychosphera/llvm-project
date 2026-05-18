@@ -395,9 +395,8 @@ BitVector PPCRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
       markSuperRegs(Reserved, PPC::R13); // Small Data Area pointer register.
   }
 
-  // Always reserve r2 on AIX and Xbox 360 for now.
-  // TODO: Make r2 allocatable on AIX/XCOFF and Xbox360/WinCOFF for some leaf functions.
-  if (Subtarget.isAIXABI() || Subtarget.isTargetXbox360())
+  // Always reserve r2 on Xbox 360.
+  if (Subtarget.isTargetXbox360())
     markSuperRegs(Reserved, PPC::R2);  // System-reserved register
 
   // On PPC64, r13 is the thread pointer. Never allocate this register.
@@ -1847,7 +1846,7 @@ Register PPCRegisterInfo::getBaseRegister(const MachineFunction &MF) const {
 }
 
 bool PPCRegisterInfo::hasBasePointer(const MachineFunction &MF) const {
-  if (!EnableBasePointer || MF.getSubtarget().getTargetTriple().isXbox360())
+  if (!EnableBasePointer)
     return false;
   if (AlwaysBasePointer)
     return true;

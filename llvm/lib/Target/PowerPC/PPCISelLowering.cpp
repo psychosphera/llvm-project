@@ -12890,15 +12890,6 @@ SDValue PPCTargetLowering::LowerSCALAR_TO_VECTOR(SDValue Op,
                        MachinePointerInfo());
   }
 
-  // Store the input value into Value#0 of the stack slot.
-  if (Op.getValueType() == MVT::v4f32) {
-    // Preserve bit-pattern: store as v4i32 then load back as v4f32 so that
-    // no floating-point conversions (stfs/lfs/lfd) can alter the bit pattern.
-    SDValue IntVal = DAG.getNode(ISD::BITCAST, dl, MVT::v4i32, Val);
-    SDValue Store = DAG.getStore(DAG.getEntryNode(), dl, IntVal, FIdx,
-                                 MachinePointerInfo());
-    return DAG.getLoad(Op.getValueType(), dl, Store, FIdx, MachinePointerInfo());
-  }
   SDValue Store =
       DAG.getStore(DAG.getEntryNode(), dl, Val, FIdx, MachinePointerInfo());
   // Load it out.

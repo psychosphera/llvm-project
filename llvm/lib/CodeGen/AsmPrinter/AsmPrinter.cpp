@@ -4086,7 +4086,6 @@ MCSymbol *AsmPrinter::GetCPISymbol(unsigned CPID) const {
         if (MCSymbol *Sym = S->getCOMDATSymbol()) {
           if (Sym->isUndefined())
             OutStreamer->emitSymbolAttribute(Sym, MCSA_Global);
-          else
           return Sym;
         }
       }

@@ -567,7 +567,6 @@ void PPCInstrInfo::finalizeInsInstrs(
 
   // Put negative fp const into constant pool.
   unsigned ConstPoolIdx = MCP->getConstantPoolIndex(NegC, Alignment);
-  dbgs() << "PPCInstrInfo::finalizeInsInstrs: ConstPoolIdx=" << ConstPoolIdx << "\n";
 
   MachineOperand *Placeholder = nullptr;
   // Record the placeholder PPC::ZERO8 we add in reassociateFMA.
@@ -1877,7 +1876,6 @@ void PPCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
         .addReg(SrcRegSub1, getKillRegState(KillSrc));
     return;
   } else {
-    dbgs() << "copyPhysReg: DestReg=" << DestReg << ", SrcReg=" << SrcReg << "(X1=" << PPC::X1 << ", R1=" << PPC::R1 << ")\n";
     llvm_unreachable("Impossible reg-to-reg copy");
   }
 

@@ -1,4 +1,4 @@
-//===- PPCXCOFFStreamer.h - XCOFF Object Output -----------------*- C++ -*-===//
+//===- PPCWinCOFFStreamer.h - XCOFF Object Output -----------------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,7 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This is a custom MCXCOFFStreamer for PowerPC.
+// This is a custom MCWinCOFFStreamer for PowerPC.
 //
 //===----------------------------------------------------------------------===//
 

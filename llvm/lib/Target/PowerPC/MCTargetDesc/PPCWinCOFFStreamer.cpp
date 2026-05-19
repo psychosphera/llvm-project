@@ -1,4 +1,4 @@
-//===-------- PPCXCOFFStreamer.cpp - XCOFF Object Output ------------------===//
+//===-------- PPCWinCOFFStreamer.cpp - COFF Object Output ------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,9 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This is a custom MCXCOFFStreamer for PowerPC.
+// This is a custom MCWinCOFFStreamer for PowerPC.
 //
-// The purpose of the custom XCOFF streamer is to allow us to intercept
+// The purpose of the custom WinCOFF streamer is to allow us to intercept
 // instructions as they are being emitted and align all 8 byte instructions
 // to a 64 byte boundary if required (by adding a 4 byte nop). This is important
 // because 8 byte instructions are not allowed to cross 64 byte boundaries

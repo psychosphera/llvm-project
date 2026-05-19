@@ -1,4 +1,4 @@
-//===-- PPCXCOFFObjectWriter.cpp - PowerPC XCOFF Writer -------------------===//
+//===-- PPCWinCOFFObjectWriter.cpp - PowerPC WinCOFF Writer -------------------===//
 //
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.

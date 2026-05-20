@@ -5411,7 +5411,7 @@ SDValue PPCTargetLowering::LowerCallResult(
       Chain = Lo.getValue(1);
       InGlue = Lo.getValue(2);
       VA = RVLocs[++i]; // skip ahead to next loc
-      SDValue Hi = DAG.getCopyFromReg(Chain, dl, LocReg, MVT::i32,
+      SDValue Hi = DAG.getCopyFromReg(Chain, dl, VA.getLocReg(), MVT::i32,
                                       InGlue);
       Chain = Hi.getValue(1);
       InGlue = Hi.getValue(2);
@@ -6565,7 +6565,7 @@ SDValue PPCTargetLowering::LowerCall_64SVR4(
                                                           CallSeqStart,
                                                           Flags, DAG, dl);
       // When a register is available, pass a small aggregate right-justified.
-      if (Size <= PtrByteSize && GPR_idx != NumGPRs) {
+      if (Size < PtrByteSize && GPR_idx != NumGPRs) {
         // The easiest way to get this right-justified in a register
         // is to copy the structure into the rightmost portion of a
         // local variable slot, then load the whole slot into the

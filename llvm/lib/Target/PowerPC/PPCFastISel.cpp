@@ -1739,7 +1739,7 @@ bool PPCFastISel::SelectRet(const Instruction *I) {
       CCValAssign &VA = ValLocs[0];
 
       Register RetReg = VA.getLocReg();
-      const MVT RetVT = VA.getLocVT();
+      const MVT RetVT = MVT::i64; // VA.getLocVT();
       // We still need to worry about properly extending the sign. For example,
       // we could have only a single bit or a constant that needs zero
       // extension rather than sign extension. Make sure we pass the return

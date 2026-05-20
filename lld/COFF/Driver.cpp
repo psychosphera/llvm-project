@@ -2271,7 +2271,8 @@ void LinkerDriver::linkerMain(ArrayRef<const char *> argsArr) {
       config->is64() &&
       args.hasFlag(OPT_highentropyva, OPT_highentropyva_no, true);
 
-  config->dynamicBase = config->machine != IMAGE_FILE_MACHINE_PPCBE;
+  if (config->machine == IMAGE_FILE_MACHINE_PPCBE)
+    config->dynamicBase = false;
   if (!config->dynamicBase &&
       (config->machine == ARMNT || isAnyArm64(config->machine)))
     Err(ctx) << "/dynamicbase:no is not compatible with "

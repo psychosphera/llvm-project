@@ -127,13 +127,13 @@ void SectionChunk::applyRelX64(uint8_t *off, uint16_t type, OutputSection *os,
   case IMAGE_REL_AMD64_ADDR64:
     add64(off, s + imageBase);
     break;
-  case IMAGE_REL_AMD64_ADDR32NB: add32be(off, s); break;
-  case IMAGE_REL_AMD64_REL32:    add32be(off, s - p - 4); break;
-  case IMAGE_REL_AMD64_REL32_1:  add32be(off, s - p - 5); break;
-  case IMAGE_REL_AMD64_REL32_2:  add32be(off, s - p - 6); break;
-  case IMAGE_REL_AMD64_REL32_3:  add32be(off, s - p - 7); break;
-  case IMAGE_REL_AMD64_REL32_4:  add32be(off, s - p - 8); break;
-  case IMAGE_REL_AMD64_REL32_5:  add32be(off, s - p - 9); break;
+  case IMAGE_REL_AMD64_ADDR32NB: add32(off, s); break;
+  case IMAGE_REL_AMD64_REL32:    add32(off, s - p - 4); break;
+  case IMAGE_REL_AMD64_REL32_1:  add32(off, s - p - 5); break;
+  case IMAGE_REL_AMD64_REL32_2:  add32(off, s - p - 6); break;
+  case IMAGE_REL_AMD64_REL32_3:  add32(off, s - p - 7); break;
+  case IMAGE_REL_AMD64_REL32_4:  add32(off, s - p - 8); break;
+  case IMAGE_REL_AMD64_REL32_5:  add32(off, s - p - 9); break;
   case IMAGE_REL_AMD64_SECTION:
     applySecIdx(off, os, file->symtab.ctx.outputSections.size());
     break;
